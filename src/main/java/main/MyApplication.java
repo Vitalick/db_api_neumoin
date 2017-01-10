@@ -1,13 +1,13 @@
 package main;
 
-import controllers.CommonController;
-import controllers.UserController;
+import controllers.*;
 
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 import java.sql.Connection;
 import java.util.HashSet;
 import java.util.Set;
+
 
 @ApplicationPath("db/api")
 public class MyApplication extends Application {
@@ -17,6 +17,9 @@ public class MyApplication extends Application {
         Connection connection = Connector.getConnection();
         objects.add(new CommonController(connection));
         objects.add(new UserController(connection));
+        objects.add(new ForumController(connection));
+        objects.add(new PostController(connection));
+        objects.add(new ThreadController(connection));
         return objects;
     }
 }

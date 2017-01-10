@@ -1,6 +1,7 @@
 package dataSets;
 
-import org.jetbrains.annotations.NotNull;
+import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 import java.util.ArrayList;
 import java.sql.ResultSet;
@@ -8,19 +9,22 @@ import java.sql.SQLException;
 
 
 public class UserDataSet {
-    private final int id;
+    private int id;
     private String email;
-    private final String username;
-    private final String name;
-    private final String about;
-    private final boolean isAnonymous;
-    private final ArrayList<String> followers;
-    private final ArrayList<String> following;
-    private final ArrayList<String> subscriptions;
+    private String username;
+    private String name;
+    private String about;
+    private boolean isAnonymous = false;
+    @JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)
+    private ArrayList<String> followers;
+    @JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)
+    private ArrayList<String> following;
+    @JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)
+    private ArrayList<Integer> subscriptions;
 
     public UserDataSet(int id, String email, String username, String name, String about,
                        boolean isAnonymous, ArrayList<String> followers,
-                       ArrayList<String> following, ArrayList<String> subscriptions) {
+                       ArrayList<String> following, ArrayList<Integer> subscriptions) {
         this.id = id;
         this.email = email;
         this.username = username;
@@ -35,7 +39,7 @@ public class UserDataSet {
     public UserDataSet(int id, String email, String username, String name, String about,
                        boolean isAnonymous) {
         this(id, email, username, name, about, isAnonymous, new ArrayList<String>(),
-                new ArrayList<String>(), new ArrayList<String>());
+                new ArrayList<String>(), new ArrayList<Integer>());
 
     }
 
@@ -43,25 +47,36 @@ public class UserDataSet {
         this(
                 resultSet.getInt("id"),
                 resultSet.getString("email"),
-                resultSet.getString("name"),
-                resultSet.getString("username"),
+                resultSet.getString("name"),resultSet.getString("username"),
                 resultSet.getString("about"),
                 resultSet.getBoolean("isAnonymous")
         );
     }
 
-    public UserDataSet() {
-        this.id = 1;
-        this.email = "sda";
-        this.username = "asd";
-        this.name = "asd";
-        this.about = "qwd";
-        this.isAnonymous = false;
-        this.followers = null;
-        this.following = null;
-        this.subscriptions = null;
+    public UserDataSet(JsonNode json) {
+        this.email = json.get("email").getTextValue();
+        this.username = json.get("username").getTextValue();
+        this.name = json.get("name").getTextValue();
+        this.about = json.get("about").getTextValue();
+        if (json.has("isAnonymous")) { this.isAnonymous = json.get("isAnonymous").getBooleanValue(); }
     }
 
+    public int getId() { return id; }
+    public void setId(int id ) { this.id = id; }
     public String getEmail() { return email; }
-    public void setEmail(@NotNull String email) { this.email = email; }
+    public void setEmail(String email) { this.email = email; }
+    public String getUsername() { return username; }
+    public void setUsername(String username ) { this.username = username; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getAbout() { return about; }
+    public void setAbout(String about) { this.about = about; }
+    public boolean getIsAnonymous() { return isAnonymous; }
+    public void setIsAnonymous(boolean isAnonymous) { this.isAnonymous = isAnonymous; }
+    public ArrayList<String> getFollowers() { return followers; }
+    public void setFollowers(ArrayList<String> followers) { this.followers = followers; }
+    public ArrayList<String> getFollowing() { return following; }
+    public void setFollowing(ArrayList<String> following) { this.following = following; }
+    public ArrayList<Integer> getSubscriptions() { return subscriptions; }
+    public void setSubscriptions(ArrayList<Integer> subscriptions) { this.subscriptions = subscriptions; }
 }
