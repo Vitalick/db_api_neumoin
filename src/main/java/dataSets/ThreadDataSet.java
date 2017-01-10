@@ -36,7 +36,8 @@ public class ThreadDataSet {
     public ThreadDataSet(ResultSet resultSet) throws SQLException{
         this.id = resultSet.getInt("id");
         this.title = resultSet.getString("title");
-        this.date = resultSet.getString("date");
+        String dateWithMs = resultSet.getString("date");
+        this.date = dateWithMs.substring(0, dateWithMs.length() - 2);
         this.slug = resultSet.getString("slug");
         this.message = resultSet.getString("message");
         this.isClosed = resultSet.getBoolean("isClosed");

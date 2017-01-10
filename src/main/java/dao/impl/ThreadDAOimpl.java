@@ -264,10 +264,16 @@ public class ThreadDAOimpl implements ThreadDAO {
 
         int threadId = json.get("thread").getIntValue();
         try {
-            String query = "UPDATE thread SET isDeleted=1 WHERE id = ?";
+            String query = "UPDATE thread SET isDeleted=1, posts=0 WHERE id = ?";
             PreparedStatement stmt = connection.prepareStatement(query);
             stmt.setInt(1, threadId);
             stmt.executeUpdate();
+            stmt.close();
+
+            String queryDeletePosts = "UPDATE post SET isDeleted=1 WHERE thread = ?";
+            stmt = connection.prepareStatement(queryDeletePosts);
+            stmt.setInt(1, threadId);
+            stmt.execute();
             stmt.close();
 
             return new CustomResponse(json, CustomResponse.OK);
@@ -289,10 +295,17 @@ public class ThreadDAOimpl implements ThreadDAO {
 
         int threadId = json.get("thread").getIntValue();
         try {
-            String query = "UPDATE thread SET isDeleted=0 WHERE id = ?";
+            String query = "UPDATE thread SET isDeleted=0, posts=(SELECT COUNT(*) FROM post WHERE thread=?) WHERE id = ?";
             PreparedStatement stmt = connection.prepareStatement(query);
             stmt.setInt(1, threadId);
+            stmt.setInt(2, threadId);
             stmt.executeUpdate();
+            stmt.close();
+
+            String queryRestorePosts = "UPDATE post SET isDeleted=0 WHERE thread = ?";
+            stmt = connection.prepareStatement(queryRestorePosts);
+            stmt.setInt(1, threadId);
+            stmt.execute();
             stmt.close();
 
             return new CustomResponse(json, CustomResponse.OK);
@@ -425,21 +438,41 @@ public class ThreadDAOimpl implements ThreadDAO {
             queryBuilder.append("SELECT * FROM post");
             queryBuilder.append(" WHERE thread = ?");
             if (since != null) queryBuilder.append(" AND date >= ?");
-            queryBuilder.append(" ORDER BY date");
-            if (order.equals("desc")) queryBuilder.append(" DESC");
-            if (limit != null)
-                queryBuilder.append(" LIMIT ?");
+
+            if (sort.equals("flat")) {
+                queryBuilder.append(" ORDER BY date");
+                if (order.equals("desc")) queryBuilder.append(" DESC");
+            } else {
+                queryBuilder.append(" ORDER BY first_path");
+                if (order.equals("desc")) queryBuilder.append(" DESC");
+                queryBuilder.append(", last_path");
+            }
+
+            if (limit != null && !sort.equals("parent_tree")) {
+                    queryBuilder.append(" LIMIT ?");
+            }
 
             PreparedStatement stmt = connection.prepareStatement(queryBuilder.toString());
             stmt.setString(1, threadId);
             int stmtParam = 2;
             if (since != null) stmt.setString(stmtParam++, since);
-            if (limit != null) stmt.setInt(stmtParam, new Integer(limit));
+            if (limit != null && !sort.equals("parent_tree")) stmt.setInt(stmtParam, new Integer(limit));
 
             ResultSet resultSet = stmt.executeQuery();
             List<PostDataSet> posts = new ArrayList<>();
+
+            int parents = 0;
+            String lastParent = "-1";
             while (resultSet.next()) {
                 PostDataSet post = new PostDataSet(resultSet);
+                if (sort.equals("parent_tree") && limit != null) {
+                    System.out.println("AAAAAAAAAAAAAAAAA" + post.getFirstPathValue());
+                    if (!post.getFirstPathValue().equals(lastParent)) {
+                        parents++;
+                        lastParent = post.getFirstPathValue();
+                    }
+                    if (parents == new Integer(limit) + 1) break;
+                }
                 posts.add(post);
             }
             stmt.close();

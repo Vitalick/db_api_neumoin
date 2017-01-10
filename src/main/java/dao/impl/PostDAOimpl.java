@@ -56,7 +56,6 @@ public class PostDAOimpl implements PostDAO{
             }
             try {
                 post = new PostDataSet(json);
-
             } catch (Exception e) {
                 return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
             }
@@ -84,6 +83,36 @@ public class PostDAOimpl implements PostDAO{
             if (generatedKeys.next())
                 post.setId(generatedKeys.getInt(1));
             stmt.close();
+
+            if (post.getParent() == 0) {
+                String querySetPaths = "UPDATE post SET first_path=? WHERE id=?";
+                stmt = connection.prepareStatement(querySetPaths);
+                stmt.setInt(1, post.getId());
+                stmt.setInt(2, post.getId());
+                stmt.execute();
+                stmt.close();
+            } else {
+                String queryGetParent = "SELECT first_path,last_path FROM post WHERE id=?";
+                stmt = connection.prepareStatement(queryGetParent);
+                stmt.setObject(1, post.getParent());
+                ResultSet resultSet = stmt.executeQuery();
+                resultSet.next();
+                String parentFirstPath = resultSet.getString("first_path");
+                String parentLastPath = resultSet.getString("last_path");
+                stmt.close();
+
+                String querySetPaths = "UPDATE post SET first_path=?, last_path=? WHERE id=?";
+                stmt = connection.prepareStatement(querySetPaths);
+                stmt.setString(1, parentFirstPath);
+                if (parentLastPath != null) {
+                    stmt.setString(2, parentLastPath + '.' + post.getId());
+                } else {
+                    stmt.setInt(2, post.getId());
+                }
+                stmt.setObject(3, post.getId());
+                stmt.execute();
+                stmt.close();
+            }
 
             String queryThreadPosts = "UPDATE thread SET posts=posts+1 WHERE id=?";
             stmt = connection.prepareStatement(queryThreadPosts);
@@ -298,7 +327,7 @@ public class PostDAOimpl implements PostDAO{
         }
 
         if (!json.has("vote") || !json.has("post") ||
-                json.get("vote").getIntValue() != 1 && json.get("post").getIntValue() != -1) {
+                json.get("vote").getIntValue() != 1 && json.get("vote").getIntValue() != -1) {
             return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
         }
         int vote = json.get("vote").getIntValue();

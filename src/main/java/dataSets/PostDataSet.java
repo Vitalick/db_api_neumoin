@@ -24,6 +24,8 @@ public class PostDataSet {
     private Object forum;
     private Object thread;
     private Object user;
+    private String firstPath;
+    private String lastPath;
 
     /*public PostDataSet(String date, Object thread, String message, Object user, int parent,
                        boolean isApproved, boolean isHighlighted, boolean isEdited,
@@ -48,11 +50,13 @@ public class PostDataSet {
         if (json.has("isSpam")) { this.isSpam = json.get("isSpam").getBooleanValue(); }
         if (json.has("isDeleted")) { this.isDeleted = json.get("isDeleted").getBooleanValue(); }
         if (json.has("parent")) { this.parent = json.get("parent").getIntValue(); }
+        System.out.println(this.parent);
     }
 
     public PostDataSet(ResultSet resultSet) throws SQLException {
         this.id = resultSet.getInt("id");
-        this.date = resultSet.getString("date");
+        String dateWithMs = resultSet.getString("date");
+        this.date = dateWithMs.substring(0, dateWithMs.length() - 2);
         this.thread = resultSet.getInt("thread");
         this.forum = resultSet.getObject("forum");
         this.message = resultSet.getString("message");
@@ -62,10 +66,12 @@ public class PostDataSet {
         this.isEdited = resultSet.getBoolean("isEdited");
         this.isSpam = resultSet.getBoolean("isSpam");
         this.isDeleted = resultSet.getBoolean("isDeleted");
-        this.parent = resultSet.getInt("parent");
+        this.parent = (resultSet.getInt("parent") == 0) ? null : resultSet.getInt("parent");
         this.likes = resultSet.getInt("likes");
         this.dislikes = resultSet.getInt("dislikes");
         this.points = resultSet.getInt("points");
+        this.firstPath = resultSet.getString("first_path");
+        this.lastPath = resultSet.getString("last_path");
     }
 
     public int getId() { return id; }
@@ -98,4 +104,6 @@ public class PostDataSet {
     public void setDislikes( int dislikes ) { this.dislikes = dislikes; }
     public int getPoints() {return points; }
     public void setPoints( int points ) { this.points = points; }
+    public String getFirstPathValue() { return firstPath; }
+    public String getLastPathValue() { return lastPath; }
 }
