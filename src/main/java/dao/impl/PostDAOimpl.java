@@ -97,17 +97,17 @@ public class PostDAOimpl implements PostDAO{
                 stmt.setObject(1, post.getParent());
                 ResultSet resultSet = stmt.executeQuery();
                 resultSet.next();
-                String parentFirstPath = resultSet.getString("first_path");
+                int parentFirstPath = resultSet.getInt("first_path");
                 String parentLastPath = resultSet.getString("last_path");
                 stmt.close();
 
                 String querySetPaths = "UPDATE post SET first_path=?, last_path=? WHERE id=?";
                 stmt = connection.prepareStatement(querySetPaths);
-                stmt.setString(1, parentFirstPath);
+                stmt.setInt(1, parentFirstPath);
                 if (parentLastPath != null) {
-                    stmt.setString(2, parentLastPath + '.' + post.getId());
+                    stmt.setString(2, parentLastPath + '.' + Integer.toString(post.getId(), 36));
                 } else {
-                    stmt.setInt(2, post.getId());
+                    stmt.setString(2, Integer.toString(post.getId(), 36));
                 }
                 stmt.setObject(3, post.getId());
                 stmt.execute();

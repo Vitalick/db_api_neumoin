@@ -24,19 +24,8 @@ public class PostDataSet {
     private Object forum;
     private Object thread;
     private Object user;
-    private String firstPath;
+    private int firstPath;
     private String lastPath;
-
-    /*public PostDataSet(String date, Object thread, String message, Object user, int parent,
-                       boolean isApproved, boolean isHighlighted, boolean isEdited,
-                       boolean isSpam, boolean isDeleted) {
-        this.date = date;
-        this.thread = thread;
-        this.message = message;
-        this.user = user;
-        this.parent = parent;
-        if (isApproved != null) this.isApproved = isApproved;
-    }*/
 
     public PostDataSet(JsonNode json) {
         this.date = json.get("date").getTextValue();
@@ -70,7 +59,7 @@ public class PostDataSet {
         this.likes = resultSet.getInt("likes");
         this.dislikes = resultSet.getInt("dislikes");
         this.points = resultSet.getInt("points");
-        this.firstPath = resultSet.getString("first_path");
+        this.firstPath = resultSet.getInt("first_path");
         this.lastPath = resultSet.getString("last_path");
     }
 
@@ -104,6 +93,6 @@ public class PostDataSet {
     public void setDislikes( int dislikes ) { this.dislikes = dislikes; }
     public int getPoints() {return points; }
     public void setPoints( int points ) { this.points = points; }
-    public String getFirstPathValue() { return firstPath; }
+    public int getFirstPathValue() { return firstPath; }
     public String getLastPathValue() { return lastPath; }
 }

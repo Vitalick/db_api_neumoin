@@ -240,17 +240,20 @@ public class ForumDAOimpl implements ForumDAO{
             List<UserDataSet> users = new ArrayList<>();
 
             StringBuilder queryBuilder = new StringBuilder();
-            queryBuilder.append("SELECT u.* FROM post p");
+            queryBuilder.append("SELECT DISTINCT u.* FROM post p");
             queryBuilder.append(" JOIN forum f ON p.forum=f.short_name");
             queryBuilder.append(" JOIN user u ON p.user=u.email");
             queryBuilder.append(" WHERE p.forum = ?");
-            queryBuilder.append(" ORDER BY date");
+            if (since_id != null) queryBuilder.append(" AND u.id >= ?");
+            queryBuilder.append(" ORDER BY u.name");
             if (order.equals("desc")) queryBuilder.append(" DESC");
             if (limit != null) queryBuilder.append(" LIMIT ?");
 
             PreparedStatement stmt = connection.prepareStatement(queryBuilder.toString());
             stmt.setString(1, forumShortName);
-            if (limit != null) stmt.setInt(2, new Integer(limit));
+            int param = 2;
+            if (since_id != null) stmt.setString(param++, since_id);
+            if (limit != null) stmt.setInt(param, new Integer(limit));
             ResultSet resultSet = stmt.executeQuery();
 
             while (resultSet.next()) {

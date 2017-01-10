@@ -462,12 +462,12 @@ public class ThreadDAOimpl implements ThreadDAO {
             List<PostDataSet> posts = new ArrayList<>();
 
             int parents = 0;
-            String lastParent = "-1";
+            int lastParent = -1;
             while (resultSet.next()) {
                 PostDataSet post = new PostDataSet(resultSet);
                 if (sort.equals("parent_tree") && limit != null) {
                     System.out.println("AAAAAAAAAAAAAAAAA" + post.getFirstPathValue());
-                    if (!post.getFirstPathValue().equals(lastParent)) {
+                    if (post.getFirstPathValue()!=lastParent) {
                         parents++;
                         lastParent = post.getFirstPathValue();
                     }
