@@ -10,6 +10,7 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import org.glassfish.jersey.servlet.ServletContainer;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -40,7 +41,8 @@ public class Main {
         System.out.println((char)code);
 
 
-        final Server server = new Server(PORT);
+        InetSocketAddress address = new InetSocketAddress("0.0.0.0", PORT);
+        final Server server = new Server(address);
         final ServletContextHandler contextHandler = new ServletContextHandler(server, "/db/api/", ServletContextHandler.SESSIONS);
 
         final ServletHolder servletHolder = new ServletHolder(ServletContainer.class);
