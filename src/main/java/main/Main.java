@@ -35,6 +35,10 @@ public class Main {
         //stmt.executeQuery("SET CHARACTER SET 'UTF8'");
         stmt.close();
 
+        int q = 65;
+        byte code = (byte)q;
+        System.out.println((char)code);
+
 
         final Server server = new Server(PORT);
         final ServletContextHandler contextHandler = new ServletContextHandler(server, "/db/api/", ServletContextHandler.SESSIONS);

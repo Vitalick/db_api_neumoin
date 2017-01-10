@@ -466,7 +466,6 @@ public class ThreadDAOimpl implements ThreadDAO {
             while (resultSet.next()) {
                 PostDataSet post = new PostDataSet(resultSet);
                 if (sort.equals("parent_tree") && limit != null) {
-                    System.out.println("AAAAAAAAAAAAAAAAA" + post.getFirstPathValue());
                     if (post.getFirstPathValue()!=lastParent) {
                         parents++;
                         lastParent = post.getFirstPathValue();

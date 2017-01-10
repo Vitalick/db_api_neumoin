@@ -84,6 +84,7 @@ public class PostDAOimpl implements PostDAO{
                 post.setId(generatedKeys.getInt(1));
             stmt.close();
 
+            byte code = (byte)post.getId();
             if (post.getParent() == 0) {
                 String querySetPaths = "UPDATE post SET first_path=? WHERE id=?";
                 stmt = connection.prepareStatement(querySetPaths);
@@ -105,9 +106,9 @@ public class PostDAOimpl implements PostDAO{
                 stmt = connection.prepareStatement(querySetPaths);
                 stmt.setInt(1, parentFirstPath);
                 if (parentLastPath != null) {
-                    stmt.setString(2, parentLastPath + '.' + Integer.toString(post.getId(), 36));
+                    stmt.setString(2, parentLastPath + '.' + (char)code);
                 } else {
-                    stmt.setString(2, Integer.toString(post.getId(), 36));
+                    stmt.setObject(2, (char)code, java.sql.Types.CHAR);
                 }
                 stmt.setObject(3, post.getId());
                 stmt.execute();
