@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/db_api_neumoin.iml" filepath="$PROJECT_DIR$/.idea/db_api_neumoin.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/TPForumAPI.iml" filepath="$PROJECT_DIR$/.idea/TPForumAPI.iml" />
     </modules>
   </component>
 </project>
