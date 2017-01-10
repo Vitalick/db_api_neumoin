@@ -19,27 +19,9 @@ import java.util.ArrayList;
 
 
 public class Main {
-    private final static int PORT = 3307;
+    private final static int PORT = 8081;
     public static void main(String[] args) throws Exception {
         System.out.append("Starting at port: ").append(String.valueOf(PORT)).append('\n');
-        Connection connection = Connector.getConnection();
-            String query = "INSERT IGNORE INTO subscribed (user, thread) VALUES (?,?)";
-            /*PreparedStatement stmt = connection.prepareStatement(query);
-            stmt.setString(1, "qaz@qaz");
-            stmt.setString(2, "1");
-            stmt.executeUpdate();
-            stmt.close();*/
-        Statement stmt = connection.createStatement();
-        stmt.execute("SET NAMES UTF8;");
-        stmt.execute("SET CHARACTER SET UTF8;");
-        //stmt.execute("INSERT INTO FORUM (name, short_name, user) VALUES ('ывы', 'ывалро', 'example@mail.ru')");
-        //stmt.executeQuery("SET CHARACTER SET 'UTF8'");
-        stmt.close();
-
-        int q = 65;
-        byte code = (byte)q;
-        System.out.println((char)code);
-
 
         InetSocketAddress address = new InetSocketAddress("0.0.0.0", PORT);
         final Server server = new Server(address);
