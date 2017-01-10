@@ -14,4 +14,12 @@ public interface ForumDAO {
     CustomResponse create(String forumString);
 
     CustomResponse details(String forumShortName, final List<String> related);
+
+    CustomResponse listPosts(String forumShortName, final List<String> related, String since,
+                             String limit, String order);
+
+    CustomResponse listThreads(String forumShortName, final List<String> related, String since,
+                             String limit, String order);
+
+    CustomResponse listUsers(String forumShortName, String since_id, String limit, String order);
 }

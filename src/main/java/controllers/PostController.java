@@ -30,6 +30,7 @@ public class PostController {
 
     @POST
     @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Path("create")
     public Response create(String postString) throws IOException {
         CustomResponse response = postDAO.create(postString);
@@ -62,6 +63,7 @@ public class PostController {
 
     @POST
     @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Path("remove")
     public Response remove(String postString) throws IOException {
         CustomResponse response = postDAO.removeOrRestore(postString, "remove");
@@ -71,6 +73,7 @@ public class PostController {
 
     @POST
     @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Path("restore")
     public Response restore(String postString) throws IOException {
         CustomResponse response = postDAO.removeOrRestore(postString, "restore");
@@ -80,9 +83,20 @@ public class PostController {
 
     @POST
     @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Path("vote")
     public Response vote(String voteString) throws IOException {
-        CustomResponse response = postDAO.vote(voteString, "restore");
+        CustomResponse response = postDAO.vote(voteString);
+        String json = mapper.writeValueAsString(response);
+        return Response.ok().entity(json).build();
+    }
+
+    @POST
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Path("update")
+    public Response update(String postString) throws IOException {
+        CustomResponse response = postDAO.update(postString);
         String json = mapper.writeValueAsString(response);
         return Response.ok().entity(json).build();
     }

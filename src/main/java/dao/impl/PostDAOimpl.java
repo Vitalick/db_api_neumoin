@@ -46,29 +46,22 @@ public class PostDAOimpl implements PostDAO{
     }
 
     public CustomResponse create(String postString) {
-        CustomResponse response = new CustomResponse();
         PostDataSet post;
 
         try {
             JsonNode json = mapper.readValue(postString, JsonNode.class);
             if (!json.has("date") || !json.has("thread") || !json.has("message")
                     || !json.has("user") || !json.has("forum")) {
-                response.setResponse("INCORRECT REQUEST");
-                response.setCode(CustomResponse.INCORRECT_REQUEST);
-                return response;
+                return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
             }
             try {
                 post = new PostDataSet(json);
 
             } catch (Exception e) {
-                response.setResponse("INCORRECT REQUEST");
-                response.setCode(CustomResponse.INCORRECT_REQUEST);
-                return response;
+                return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
             }
         } catch (IOException e) {
-            response.setResponse("INVALID REQUEST");
-            response.setCode(CustomResponse.INVALID_REQUEST);
-            return response;
+            return new CustomResponse("INVALID REQUEST", CustomResponse.INVALID_REQUEST);
         }
 
         try {
@@ -92,13 +85,15 @@ public class PostDAOimpl implements PostDAO{
                 post.setId(generatedKeys.getInt(1));
             stmt.close();
 
-            response.setResponse(post);
-            response.setCode(CustomResponse.OK);
-            return response;
+            String queryThreadPosts = "UPDATE thread SET posts=posts+1 WHERE id=?";
+            stmt = connection.prepareStatement(queryThreadPosts);
+            stmt.setInt(1, (Integer)post.getThread());
+            stmt.execute();
+            stmt.close();
+
+            return new CustomResponse(post, CustomResponse.OK);
         } catch (SQLException e) {
-            response.setResponse("UNKNOWN ERROR");
-            response.setCode(CustomResponse.UNKNOWN_ERROR);
-            return response;
+            return new CustomResponse("UNKNOWN ERROR", CustomResponse.UNKNOWN_ERROR);
         }
     }
 
@@ -163,6 +158,7 @@ public class PostDAOimpl implements PostDAO{
             response.setCode(CustomResponse.INCORRECT_REQUEST);
             return response;
         }
+        order = (order == null) ? "desc" : order;
 
         try {
             String forumQuery = "SELECT * FROM forum WHERE short_name=?;";
@@ -185,10 +181,8 @@ public class PostDAOimpl implements PostDAO{
             StringBuilder queryBuilder = new StringBuilder();
             queryBuilder.append((forumShortName != null) ? forumQuery : threadQuery);
             if (since != null) queryBuilder.append(" AND date >=?");
-            if (order != null) {
-                queryBuilder.append(" ORDER BY date");
-                if (order.equals("desc")) queryBuilder.append(" DESC");
-            }
+            queryBuilder.append(" ORDER BY date");
+            if (order.equals("desc")) queryBuilder.append(" DESC");
             if (limit != null) queryBuilder.append(" LIMIT ?");
 
             PreparedStatement stmt = connection.prepareStatement(queryBuilder.toString());
@@ -265,6 +259,32 @@ public class PostDAOimpl implements PostDAO{
         }
     }
 
+    public CustomResponse update(String postString) {
+        JsonNode json;
+        try {
+            json = mapper.readValue(postString, JsonNode.class);
+        } catch (IOException e) {
+            return new CustomResponse("INVALID REQUEST", CustomResponse.INVALID_REQUEST);
+        }
+
+        if (!json.has("post") || !json.has("message"))
+            return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
+
+        String message = json.get("message").getTextValue();
+        int postId = json.get("post").getIntValue();
+        try {
+            String query = "UPDATE post SET message=? WHERE id=?";
+            PreparedStatement stmt = connection.prepareStatement(query);
+            stmt.setString(1, message);
+            stmt.setInt(2, postId);
+            stmt.executeUpdate();
+
+            return details(new Integer(postId).toString(), new ArrayList<>());
+        } catch (SQLException e) {
+            return new CustomResponse("UNKNOWN ERROR", CustomResponse.UNKNOWN_ERROR);
+        }
+    }
+
     public CustomResponse vote(String voteString) {
         CustomResponse response = new CustomResponse();
 
@@ -277,17 +297,61 @@ public class PostDAOimpl implements PostDAO{
             return response;
         }
 
+        if (!json.has("vote") || !json.has("post") ||
+                json.get("vote").getIntValue() != 1 && json.get("post").getIntValue() != -1) {
+            return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
+        }
         int vote = json.get("vote").getIntValue();
-        if ( vote != 1 && vote != -1) {
-            response.setResponse("INCORRECT REQUEST");
-            response.setCode(CustomResponse.INCORRECT_REQUEST);
+        int postId = json.get("post").getIntValue();
+
+        try {
+            String queryLike = "UPDATE post SET likes=likes+1, points=points+1 WHERE id=?";
+            String queryDislike = "UPDATE post SET dislikes=dislikes+1, points=points-1 WHERE id=?";
+            PreparedStatement stmt = connection.prepareStatement((vote == 1) ? queryLike : queryDislike);
+            stmt.setInt(1, postId);
+            stmt.executeUpdate();
+            stmt.close();
+
+            return details(new Integer(postId).toString(), new ArrayList<>());
+        } catch (SQLException | NullPointerException e) {
+            response.setResponse("UNKNOWN ERROR");
+            response.setCode(CustomResponse.UNKNOWN_ERROR);
             return response;
         }
-        try {
-            String query = "UPDATE "
-
-        } catch (SQLException e) {
-
-        }
     }
+
+    /*private void setPath(PostDataSet post) {
+        StringBuilder path = new StringBuilder();
+
+        try {
+            String query = "SELECT path FROM post WHERE id = ?";
+            PreparedStatement stmt = connection.prepareStatement(query);
+            stmt.setInt(1, (post.getParent() == null ? 0 : post.getParent()));
+
+            try (ResultSet resultSet = stmt.executeQuery()) {
+                if (resultSet.next()) {
+                    materializedPath = resultSet.getString("m_path");
+                }
+            } catch (Exception e)  {
+                e.printStackTrace();}
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+            materializedPath += "/";
+            materializedPath += Integer.toString(post.getId(), 36);
+
+            query = "UPDATE "+tableName+" SET m_path = ? WHERE id = ?";
+
+            try (PreparedStatement stmt = connection.prepareStatement(query)) {
+                stmt.setString(1, materializedPath);
+                stmt.setInt(2, post.getId());
+
+                stmt.execute();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }*/
 }

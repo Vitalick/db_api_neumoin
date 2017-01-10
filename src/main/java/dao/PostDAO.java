@@ -19,5 +19,7 @@ public interface PostDAO {
 
     CustomResponse removeOrRestore(String postString, String action);
 
+    CustomResponse update(String postString);
+
     CustomResponse vote(String voteString);
 }

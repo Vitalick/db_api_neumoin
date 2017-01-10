@@ -47,7 +47,8 @@ public class UserDataSet {
         this(
                 resultSet.getInt("id"),
                 resultSet.getString("email"),
-                resultSet.getString("name"),resultSet.getString("username"),
+                resultSet.getString("username"),
+                resultSet.getString("name"),
                 resultSet.getString("about"),
                 resultSet.getBoolean("isAnonymous")
         );

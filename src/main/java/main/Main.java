@@ -21,14 +21,17 @@ public class Main {
     private final static int PORT = 3307;
     public static void main(String[] args) throws Exception {
         System.out.append("Starting at port: ").append(String.valueOf(PORT)).append('\n');
-        /*Connection connection = Connector.getConnection();
-        String query = "SELECT followed FROM follows WHERE follower = ?;";
-        PreparedStatement stmt = connection.prepareStatement(query);
-        stmt.setString(1, "qwe@qwe");
-        ResultSet resultSet = stmt.executeQuery();
-        UserDataSet user = new UserDataSet(100, "qsc", "qsc", "qsc", "qsc", false);
-        ArrayList<String> following = new ArrayList<>();
-        follo*/
+        Connection connection = Connector.getConnection();
+            /*String query = "INSERT IGNORE INTO subscribed (user, thread) VALUES (?,?)";
+            PreparedStatement stmt = connection.prepareStatement(query);
+            stmt.setString(1, "qaz@qaz");
+            stmt.setString(2, "1");
+            stmt.executeUpdate();
+            stmt.close();*/
+        Statement stmt = connection.createStatement();
+        stmt.executeQuery("set character_set_results=utf8");
+        //stmt.executeQuery("SET CHARACTER SET 'UTF8'");
+        stmt.close();
 
 
         final Server server = new Server(PORT);

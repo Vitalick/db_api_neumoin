@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="DataSourceManagerImpl" format="xml" hash="3174613573">
-    <data-source source="LOCAL" name="MySQL - TPForum@localhost" uuid="c98420b9-09fb-4c1f-9b8c-914a81d17723">
+  <component name="DataSourceManagerImpl" format="xml" hash="2228773750">
+    <data-source source="LOCAL" name="MySQL - TPForum@localhost" uuid="e3cc0eda-31dc-4411-a0f0-98d29fef7ebd">
       <driver-ref>mysql</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>com.mysql.jdbc.Driver</jdbc-driver>

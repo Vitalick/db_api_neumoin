@@ -56,4 +56,42 @@ public class ForumController {
         return Response.ok().entity(json).build();
     }
 
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("listPosts")
+    public Response listPosts(@QueryParam("forum") String forumShortName,
+                         @QueryParam("related") final List<String> related,
+                         @QueryParam("since") String since,
+                         @QueryParam("limit") String limit,
+                         @QueryParam("order") String order) throws IOException {
+        CustomResponse response = forumDAO.listPosts(forumShortName, related, since, limit, order);
+        String json = mapper.writeValueAsString(response);
+        return Response.ok().entity(json).build();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("listThreads")
+    public Response listThreads(@QueryParam("forum") String forumShortName,
+                              @QueryParam("related") final List<String> related,
+                              @QueryParam("since") String since,
+                              @QueryParam("limit") String limit,
+                              @QueryParam("order") String order) throws IOException {
+        CustomResponse response = forumDAO.listThreads(forumShortName, related, since, limit, order);
+        String json = mapper.writeValueAsString(response);
+        return Response.ok().entity(json).build();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("listUsers")
+    public Response listUsers(@QueryParam("forum") String forumShortName,
+                                @QueryParam("since_id") String since_id,
+                                @QueryParam("limit") String limit,
+                                @QueryParam("order") String order) throws IOException {
+        CustomResponse response = forumDAO.listUsers(forumShortName, since_id, limit, order);
+        String json = mapper.writeValueAsString(response);
+        return Response.ok().entity(json).build();
+    }
+
 }

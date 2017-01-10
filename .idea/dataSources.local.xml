@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="dataSourceStorageLocal">
-    <data-source name="MySQL - TPForum@localhost" uuid="c98420b9-09fb-4c1f-9b8c-914a81d17723">
+    <data-source name="MySQL - TPForum@localhost" uuid="e3cc0eda-31dc-4411-a0f0-98d29fef7ebd">
       <secret-storage>master_key</secret-storage>
-      <user-name>Sasha</user-name>
+      <user-name>Alexandra</user-name>
       <schema-pattern>TPForum.*</schema-pattern>
       <default-schemas>TPForum.*</default-schemas>
     </data-source>

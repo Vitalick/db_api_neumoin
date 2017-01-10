@@ -2,6 +2,7 @@ package dao.impl;
 
 import controllers.CustomResponse;
 import dao.UserDAO;
+import dataSets.PostDataSet;
 import dataSets.UserDataSet;
 import executor.PreparedExecutor;
 import executor.TExecutor;
@@ -11,6 +12,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.List;
 
 
 public class UserDAOimpl implements UserDAO{
@@ -54,7 +56,6 @@ public class UserDAOimpl implements UserDAO{
             ResultSet resultSet = stmt.executeQuery();
             UserDataSet user = null;
             if (resultSet.next()) {
-                System.out.println(resultSet.getInt("id"));
                 user = new UserDataSet(resultSet);
             } else {
                 response.setResponse("NOT FOUND");
@@ -130,6 +131,191 @@ public class UserDAOimpl implements UserDAO{
             }
         }
     }
+
+    public CustomResponse follow(String followString) {
+        JsonNode json;
+        try {
+            json = mapper.readValue(followString, JsonNode.class);
+        } catch (IOException e) {
+            return new CustomResponse("INVALID REQUEST", CustomResponse.INVALID_REQUEST);
+        }
+
+        if (!json.has("follower") || !json.has("followee"))
+            return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
+
+        String follower = json.get("follower").getTextValue();
+        String followed = json.get("followee").getTextValue();
+        try {
+            String query = "INSERT IGNORE INTO follows (follower, followed) VALUES (?,?)";
+            PreparedStatement stmt = connection.prepareStatement(query);
+            stmt.setString(1, follower);
+            stmt.setString(2, followed);
+            stmt.executeUpdate();
+            stmt.close();
+
+            return details(follower);
+        } catch (SQLException e) {
+            return new CustomResponse("UNKNOWN ERROR", CustomResponse.UNKNOWN_ERROR);
+        }
+    }
+
+    public CustomResponse unfollow(String unfollowString) {
+        JsonNode json;
+        try {
+            json = mapper.readValue(unfollowString, JsonNode.class);
+        } catch (IOException e) {
+            return new CustomResponse("INVALID REQUEST", CustomResponse.INVALID_REQUEST);
+        }
+
+        if (!json.has("follower") || !json.has("followee"))
+            return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
+
+        String follower = json.get("follower").getTextValue();
+        String followed = json.get("followee").getTextValue();
+        try {
+            String query = "DELETE FROM follows WHERE follower=? AND followed=?;";
+            PreparedStatement stmt = connection.prepareStatement(query);
+            stmt.setString(1, follower);
+            stmt.setString(2, followed);
+            stmt.execute();
+            stmt.close();
+
+            return details(follower);
+        } catch (SQLException e) {
+            return new CustomResponse("UNKNOWN ERROR", CustomResponse.UNKNOWN_ERROR);
+        }
+    }
+
+    public CustomResponse listFollowers(String email, String since_id, String limit, String order) {
+        if (email == null || order != null && !order.equals("asc") && !order.equals("desc")) {
+            return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
+        }
+        order = (order == null) ? "desc" : order;
+
+        try {
+            List<UserDataSet> followers = new ArrayList<>();
+
+            StringBuilder queryBuilder = new StringBuilder();
+            queryBuilder.append("SELECT follower FROM follows WHERE followed=?");
+            queryBuilder.append(" ORDER BY date");
+            if (order.equals("desc")) queryBuilder.append(" DESC");
+            if (limit != null) queryBuilder.append(" LIMIT ?");
+
+            PreparedStatement stmt = connection.prepareStatement(queryBuilder.toString());
+            stmt.setString(1, email);
+            if (limit != null) stmt.setInt(2, new Integer(limit));
+            ResultSet resultSet = stmt.executeQuery();
+
+            while (resultSet.next()) {
+                UserDataSet follower = (UserDataSet)details(resultSet.getString(1)).getResponse();
+                if ( since_id == null || since_id != null && follower.getId() >= new Integer(since_id) )
+                    followers.add(follower);
+            }
+
+            stmt.close();
+            return new CustomResponse(followers, CustomResponse.OK);
+        } catch (SQLException e) {
+            return new CustomResponse("UNKNOWN ERROR", CustomResponse.UNKNOWN_ERROR);
+        }
+    }
+
+    public CustomResponse listFollowing(String email, String since_id, String limit, String order) {
+        if (email == null || order != null && !order.equals("asc") && !order.equals("desc")) {
+            return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
+        }
+        order = (order == null) ? "desc" : order;
+
+        try {
+            List<UserDataSet> following = new ArrayList<>();
+
+            StringBuilder queryBuilder = new StringBuilder();
+            queryBuilder.append("SELECT followed FROM follows WHERE follower=?");
+            queryBuilder.append(" ORDER BY date");
+            if (order.equals("desc")) queryBuilder.append(" DESC");
+            if (limit != null) queryBuilder.append(" LIMIT ?");
+
+            PreparedStatement stmt = connection.prepareStatement(queryBuilder.toString());
+            stmt.setString(1, email);
+            if (limit != null) stmt.setInt(2, new Integer(limit));
+            ResultSet resultSet = stmt.executeQuery();
+
+            while (resultSet.next()) {
+                UserDataSet followed = (UserDataSet)details(resultSet.getString(1)).getResponse();
+                if ( since_id == null || since_id != null && followed.getId() >= new Integer(since_id) )
+                    following.add(followed);
+            }
+
+            stmt.close();
+            return new CustomResponse(following, CustomResponse.OK);
+        } catch (SQLException e) {
+            return new CustomResponse("UNKNOWN ERROR", CustomResponse.UNKNOWN_ERROR);
+        }
+    }
+
+    public CustomResponse listPosts(String email, String since, String limit, String order) {
+        if (email == null || order != null && !order.equals("asc") && !order.equals("desc")) {
+            return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
+        }
+        order = (order == null) ? "desc" : order;
+
+        try {
+            List<PostDataSet> posts = new ArrayList<>();
+
+            StringBuilder queryBuilder = new StringBuilder();
+            queryBuilder.append("SELECT id FROM post WHERE user = ?");
+            if (since != null) queryBuilder.append( "AND date >= ?");
+            queryBuilder.append(" ORDER BY date");
+            if (order.equals("desc")) queryBuilder.append(" DESC");
+            if (limit != null) queryBuilder.append(" LIMIT ?");
+
+            PreparedStatement stmt = connection.prepareStatement(queryBuilder.toString());
+            stmt.setString(1, email);
+            int stmtParam = 2;
+            if (since != null) stmt.setString(stmtParam++, since);
+            if (limit != null) stmt.setInt(stmtParam, new Integer(limit));
+            ResultSet resultSet = stmt.executeQuery();
+
+            while (resultSet.next()) {
+                PostDataSet post = (PostDataSet)new PostDAOimpl(connection).details(resultSet.getString(1), new ArrayList<>()).getResponse();
+                posts.add(post);
+            }
+
+            stmt.close();
+            return new CustomResponse(posts, CustomResponse.OK);
+        } catch (SQLException e) {
+            return new CustomResponse("UNKNOWN ERROR", CustomResponse.UNKNOWN_ERROR);
+        }
+    }
+
+    public CustomResponse updateProfile(String userString) {
+        JsonNode json;
+        try {
+            json = mapper.readValue(userString, JsonNode.class);
+        } catch (IOException e) {
+            return new CustomResponse("INVALID REQUEST", CustomResponse.INVALID_REQUEST);
+        }
+
+        if (!json.has("user") || !json.has("name") || !json.has("about"))
+            return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
+
+        String email = json.get("user").getTextValue();
+        String name = json.get("name").getTextValue();
+        String about = json.get("about").getTextValue();
+        try {
+            String query = "UPDATE user SET name=?, about=? WHERE email=?";
+            PreparedStatement stmt = connection.prepareStatement(query);
+            stmt.setString(1, name);
+            stmt.setString(2, about);
+            stmt.setString(3, email);
+            stmt.executeUpdate();
+            stmt.close();
+
+            return details(email);
+        } catch (SQLException e) {
+            return new CustomResponse("UNKNOWN ERROR", CustomResponse.UNKNOWN_ERROR);
+        }
+    }
+
 
     public void setFollowers(UserDataSet user) throws SQLException {
         ArrayList<String> followers = new ArrayList<>();

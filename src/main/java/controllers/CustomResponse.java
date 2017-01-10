@@ -18,9 +18,13 @@ public class CustomResponse {
     @NotNull
     private Object response;
 
+    public CustomResponse(Object response, int code) {
+        this.response = response;
+        this.code = code;
+    }
     public CustomResponse() {
-        response = "";
-        code = -1;
+        this.response = "";
+        this.code = -1;
     }
 
     @NotNull

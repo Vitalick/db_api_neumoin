@@ -42,6 +42,7 @@ public class UserController {
 
     @POST
     @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Path("create")
     public Response create(String userString) throws IOException {
         CustomResponse response = userDAO.create(userString);
@@ -49,4 +50,69 @@ public class UserController {
         return Response.ok().entity(json).build();
     }
 
+    @POST
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Path("follow")
+    public Response follow(String followString) throws IOException {
+        CustomResponse response = userDAO.follow(followString);
+        String json = mapper.writeValueAsString(response);
+        return Response.ok().entity(json).build();
+    }
+
+    @POST
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Path("unfollow")
+    public Response unfollow(String unfollowString) throws IOException {
+        CustomResponse response = userDAO.unfollow(unfollowString);
+        String json = mapper.writeValueAsString(response);
+        return Response.ok().entity(json).build();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("listFollowers")
+    public Response listFollowers(@QueryParam("user") String email,
+                                  @QueryParam("since_id") String since_id,
+                                  @QueryParam("order") String order,
+                                  @QueryParam("limit") String limit) throws IOException {
+        CustomResponse response = userDAO.listFollowers(email, since_id, limit, order);
+        String json = mapper.writeValueAsString(response);
+        return Response.ok().entity(json).build();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("listFollowing")
+    public Response listFollowing(@QueryParam("user") String email,
+                                  @QueryParam("since_id") String since_id,
+                                  @QueryParam("order") String order,
+                                  @QueryParam("limit") String limit) throws IOException {
+        CustomResponse response = userDAO.listFollowing(email, since_id, limit, order);
+        String json = mapper.writeValueAsString(response);
+        return Response.ok().entity(json).build();
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("listPosts")
+    public Response listPosts(@QueryParam("user") String email,
+                                  @QueryParam("since") String since,
+                                  @QueryParam("order") String order,
+                                  @QueryParam("limit") String limit) throws IOException {
+        CustomResponse response = userDAO.listPosts(email, since, limit, order);
+        String json = mapper.writeValueAsString(response);
+        return Response.ok().entity(json).build();
+    }
+
+    @POST
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Path("updateProfile")
+    public Response updateProfile(String userString) throws IOException {
+        CustomResponse response = userDAO.updateProfile(userString);
+        String json = mapper.writeValueAsString(response);
+        return Response.ok().entity(json).build();
+    }
 }
