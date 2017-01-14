@@ -1,5 +1,12 @@
 package main;
 
+import org.apache.commons.dbcp.ConnectionFactory;
+import org.apache.commons.dbcp.DriverManagerConnectionFactory;
+import org.apache.commons.dbcp.PoolableConnectionFactory;
+import org.apache.commons.dbcp.PoolingDataSource;
+import org.apache.commons.pool.impl.GenericObjectPool;
+
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
@@ -7,27 +14,26 @@ import java.sql.SQLException;
 
 
 public class Connector {
-    public static Connection getConnection() {
-        try {
-            DriverManager.registerDriver((Driver) Class.forName("com.mysql.jdbc.Driver").newInstance());
+    public static final String DRIVER = "com.mysql.jdbc.Driver";
+    public static final String URL_DB = "jdbc:mysql://localhost:3306/TPForum?autoreconnect=true&useUnicode=yes&characterEncoding=UTF-8";
+    public static final String USER_DB = "Alexandra";
+    public static final String PASSWORD_DB = "secret";
 
-            StringBuilder url = new StringBuilder();
+    private GenericObjectPool connectionPool = null;
 
-            url.
-                    append("jdbc:mysql://").        //db type
-                    append("localhost:").            //host name
-                    append("3306/").                //port
-                    append("TPForum?").            //db name
-                    append("user=Vitaly&").            //login
-                    append("password=rkt1iu1&").      //password
-                    append("useUnicode=true&").
-                    append("characterEncoding=utf8");        //password
+    public DataSource createSource() throws Exception
+    {
+        Class.forName(DRIVER).newInstance();
+        connectionPool = new GenericObjectPool();
+        connectionPool.setMaxActive(100);
+        ConnectionFactory connectionFactory = new DriverManagerConnectionFactory(URL_DB, USER_DB, PASSWORD_DB);
 
-            Connection connection = DriverManager.getConnection(url.toString());
-            return connection;
-        } catch (SQLException | InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-        return null;
+        PoolableConnectionFactory pcf = new PoolableConnectionFactory(connectionFactory, connectionPool,
+                        null, null, false, true);
+        return new PoolingDataSource(connectionPool);
+    }
+
+    public GenericObjectPool getConnectionPool() {
+        return connectionPool;
     }
 }

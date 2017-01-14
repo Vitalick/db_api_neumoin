@@ -16,14 +16,12 @@ import java.util.List;
 @Singleton
 @Path("/thread")
 public class ThreadController {
-    private Connection connection;
     private ObjectMapper mapper;
     private final ThreadDAO threadDAO;
 
-    public ThreadController(Connection connection) {
-        this.connection = connection;
+    public ThreadController() {
         mapper = new ObjectMapper();
-        threadDAO = new ThreadDAOimpl(connection);
+        threadDAO = new ThreadDAOimpl();
     }
 
     @POST
@@ -136,7 +134,7 @@ public class ThreadController {
     public Response vote(String voteString) throws IOException {
         CustomResponse response = threadDAO.vote(voteString);
         String json = mapper.writeValueAsString(response);
-        return Response.ok().entity(json).build();
+        return Response.ok().entity(response).build();
     }
 
     @GET

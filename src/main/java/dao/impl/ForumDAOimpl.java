@@ -8,6 +8,8 @@ import dataSets.ThreadDataSet;
 import dataSets.UserDataSet;
 import executor.PreparedExecutor;
 import executor.TExecutor;
+import main.Connector;
+import main.Main;
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.JsonParseException;
@@ -15,27 +17,22 @@ import org.codehaus.jackson.map.ObjectMapper;
 
 import javax.ws.rs.core.Response;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 //FIX PLACE WITH DETAILS
 
 public class ForumDAOimpl implements ForumDAO{
-    private Connection connection;
     private ObjectMapper mapper;
 
-    public ForumDAOimpl(Connection connection) {
-        this.connection = connection;
+    public ForumDAOimpl() {
         mapper = new ObjectMapper();
         mapper.getJsonFactory().configure(JsonGenerator.Feature.ESCAPE_NON_ASCII, true);
     }
 
     public void truncateTable() {
-        try {
+        try (Connection connection = Main.connection.getConnection()) {
             TExecutor.execQuery(connection, "SET FOREIGN_KEY_CHECKS = 0;");
             TExecutor.execQuery(connection, "TRUNCATE TABLE forum;");
             TExecutor.execQuery(connection, "SET FOREIGN_KEY_CHECKS = 1;");
@@ -45,7 +42,7 @@ public class ForumDAOimpl implements ForumDAO{
     }
 
     public int count() {
-        try {
+        try (Connection connection = Main.connection.getConnection()) {
             int count = TExecutor.execQuery(connection, "SELECT COUNT(*) FROM forum;", resultSet -> {
                 resultSet.next();
                 return resultSet.getInt(1);
@@ -64,11 +61,10 @@ public class ForumDAOimpl implements ForumDAO{
             try {
                 ForumDataSet forum = new ForumDataSet(json.get("name").getTextValue(),
                         json.get("short_name").getTextValue(), json.get("user").getTextValue() );
-                try {
+                try (Connection connection = Main.connection.getConnection()) {
                     String query = "INSERT INTO forum (name, short_name, user) VALUES(?,?,?)";
                     PreparedStatement stmt = connection.prepareStatement(query);
                     stmt.setString(1, forum.getName());
-                    System.out.println(json.get("short_name").getTextValue());
                     stmt.setString(2, forum.getShort_name());
                     stmt.setString(3, (String)forum.getUser());
                     stmt.execute();
@@ -109,7 +105,7 @@ public class ForumDAOimpl implements ForumDAO{
         }
 
         ForumDataSet forum;
-        try {
+        try (Connection connection = Main.connection.getConnection()) {
             String query = "SELECT * FROM forum WHERE short_name=?";
             PreparedStatement stmt = connection.prepareStatement(query);
             stmt.setString(1,forumShortName);
@@ -122,7 +118,7 @@ public class ForumDAOimpl implements ForumDAO{
                 return response;
             }
             if (related.contains("user")) {
-                forum.setUser(new UserDAOimpl(connection).details((String)forum.getUser()).getResponse());
+                forum.setUser(new UserDAOimpl().details((String)forum.getUser()).getResponse());
             }
             stmt.close();
 
@@ -140,13 +136,13 @@ public class ForumDAOimpl implements ForumDAO{
                              String limit, String order) {
         if (forumShortName == null || (order != null && !order.equals("asc") && !order.equals("desc")))
             return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
-        for(String str : related) {
+        for (String str : related) {
             if (!str.equals("forum") && !str.equals("thread") && !str.equals("user"))
                 return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
         }
         order = (order == null) ? "desc" : order;
 
-        try {
+        try (Connection connection = Main.connection.getConnection()) {
             StringBuilder queryBuilder = new StringBuilder();
             queryBuilder.append("SELECT * FROM post WHERE forum=?");
             if (since != null) queryBuilder.append(" AND date >=?");
@@ -154,30 +150,33 @@ public class ForumDAOimpl implements ForumDAO{
             if (!order.equals("asc")) queryBuilder.append(" DESC");
             if (limit != null) queryBuilder.append(" LIMIT ?");
 
+
             PreparedStatement stmt = connection.prepareStatement(queryBuilder.toString());
             stmt.setString(1, forumShortName);
             int stmtParam = 2;
             if (since != null) stmt.setString(stmtParam++, since);
             if (limit != null) stmt.setInt(stmtParam, new Integer(limit));
 
-            ResultSet resultSet = stmt.executeQuery();
             List<PostDataSet> posts = new ArrayList<>();
+            ResultSet resultSet = stmt.executeQuery();
             while (resultSet.next()) {
                 PostDataSet post = new PostDataSet(resultSet);
-                posts.add(post);
 
                 if (related.contains("forum"))
                     post.setForum(details(forumShortName, new ArrayList<>()).getResponse());
                 if (related.contains("thread")) {
                     Integer thread = (Integer)post.getThread();
-                    post.setThread(new ThreadDAOimpl(connection).details(thread.toString(),
+                    post.setThread(new ThreadDAOimpl().details(thread.toString(),
                             new ArrayList<>()).getResponse());
                 }
                 if (related.contains("user")) {
                     String user = (String)post.getUser();
-                    post.setUser(new UserDAOimpl(connection).details(user).getResponse());
+                    post.setUser(new UserDAOimpl().details(user).getResponse());
                 }
+
+                posts.add(post);
             }
+
             stmt.close();
 
             return new CustomResponse(posts, CustomResponse.OK);
@@ -196,7 +195,7 @@ public class ForumDAOimpl implements ForumDAO{
         }
         order = (order == null) ? "desc" : order;
 
-        try {
+        try (Connection connection = Main.connection.getConnection()) {
             StringBuilder queryBuilder = new StringBuilder();
             queryBuilder.append("SELECT * FROM thread WHERE forum=?");
             if (since != null) queryBuilder.append(" AND date >=?");
@@ -220,7 +219,7 @@ public class ForumDAOimpl implements ForumDAO{
                     thread.setForum(details(forumShortName, new ArrayList<>()).getResponse());
                 if (related.contains("user")) {
                     String user = (String)thread.getUser();
-                    thread.setUser(new UserDAOimpl(connection).details(user).getResponse());
+                    thread.setUser(new UserDAOimpl().details(user).getResponse());
                 }
             }
             stmt.close();
@@ -236,14 +235,13 @@ public class ForumDAOimpl implements ForumDAO{
             return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
         order = (order == null) ? "desc" : order;
 
-        try {
+        try (Connection connection = Main.connection.getConnection()) {
             List<UserDataSet> users = new ArrayList<>();
 
             StringBuilder queryBuilder = new StringBuilder();
-            queryBuilder.append("SELECT DISTINCT u.* FROM post p");
-            queryBuilder.append(" JOIN forum f ON p.forum=f.short_name");
-            queryBuilder.append(" JOIN user u ON p.user=u.email");
-            queryBuilder.append(" WHERE p.forum = ?");
+            queryBuilder.append("SELECT u.* FROM user u");
+            queryBuilder.append(" JOIN user_forum uf ON u.email=uf.user");
+            queryBuilder.append(" WHERE uf.forum = ?");
             if (since_id != null) queryBuilder.append(" AND u.id >= ?");
             queryBuilder.append(" ORDER BY u.name");
             if (order.equals("desc")) queryBuilder.append(" DESC");
@@ -254,11 +252,14 @@ public class ForumDAOimpl implements ForumDAO{
             int param = 2;
             if (since_id != null) stmt.setString(param++, since_id);
             if (limit != null) stmt.setInt(param, new Integer(limit));
+
             ResultSet resultSet = stmt.executeQuery();
 
             while (resultSet.next()) {
-                String email = resultSet.getString("email");
-                UserDataSet user = (UserDataSet) new UserDAOimpl(connection).details(email).getResponse();
+                UserDataSet user = new UserDataSet(resultSet);
+                new UserDAOimpl().setFollowers(connection, user);
+                new UserDAOimpl().setFollowing(connection, user);
+                new UserDAOimpl().setSubscriptions(connection, user);
                 if ( since_id == null || since_id != null && user.getId() >= new Integer(since_id) )
                     users.add(user);
             }

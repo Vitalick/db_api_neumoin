@@ -14,12 +14,11 @@ public class MyApplication extends Application {
     @Override
     public Set<Object> getSingletons() {
         final HashSet<Object> objects = new HashSet<>();
-        Connection connection = Connector.getConnection();
-        objects.add(new CommonController(connection));
-        objects.add(new UserController(connection));
-        objects.add(new ForumController(connection));
-        objects.add(new PostController(connection));
-        objects.add(new ThreadController(connection));
+        objects.add(new CommonController());
+        objects.add(new UserController());
+        objects.add(new ForumController());
+        objects.add(new PostController());
+        objects.add(new ThreadController());
         return objects;
     }
 }

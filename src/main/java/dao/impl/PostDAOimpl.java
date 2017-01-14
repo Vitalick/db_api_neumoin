@@ -4,6 +4,7 @@ import controllers.CustomResponse;
 import dao.PostDAO;
 import dataSets.PostDataSet;
 import executor.TExecutor;
+import main.Main;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 
@@ -14,16 +15,14 @@ import java.util.List;
 
 
 public class PostDAOimpl implements PostDAO{
-    Connection connection;
     ObjectMapper mapper;
 
-    public PostDAOimpl(Connection connection) {
-        this.connection = connection;
+    public PostDAOimpl() {
         mapper = new ObjectMapper();
     }
 
     public void truncateTable() {
-        try {
+        try (Connection connection = Main.connection.getConnection()) {
             TExecutor.execQuery(connection, "SET FOREIGN_KEY_CHECKS = 0;");
             TExecutor.execQuery(connection, "TRUNCATE TABLE post;");
             TExecutor.execQuery(connection, "SET FOREIGN_KEY_CHECKS = 1;");
@@ -33,11 +32,13 @@ public class PostDAOimpl implements PostDAO{
     }
 
     public int count() {
-        try {
-            int count = TExecutor.execQuery(connection, "SELECT COUNT(*) FROM post WHERE isDeleted=0;", resultSet -> {
-                resultSet.next();
-                return resultSet.getInt(1);
-            });
+        try (Connection connection = Main.connection.getConnection()) {
+            int count = 0;
+            Statement stmt = connection.createStatement();
+            ResultSet resultSet = stmt.executeQuery("SELECT posts FROM thread");
+            while (resultSet.next()) {
+                count += resultSet.getInt(1);
+            }
             return count;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -45,6 +46,7 @@ public class PostDAOimpl implements PostDAO{
         return -1;
     }
 
+    //TODO проверка на isDeleted в базе
     public CustomResponse create(String postString) {
         PostDataSet post;
 
@@ -63,8 +65,7 @@ public class PostDAOimpl implements PostDAO{
             return new CustomResponse("INVALID REQUEST", CustomResponse.INVALID_REQUEST);
         }
 
-        try {
-            System.out.println(post.getMessage());
+        try (Connection connection = Main.connection.getConnection()) {
             String query = "INSERT INTO post (date, thread, message, user, forum, parent, isApproved, isHighlighted, isEdited, isSpam, isDeleted) VALUES(?,?,?,?,?,?,?,?,?,?,?);";
             PreparedStatement stmt = connection.prepareStatement(query);
             stmt.setString(1, post.getDate());
@@ -85,7 +86,7 @@ public class PostDAOimpl implements PostDAO{
             stmt.close();
 
             byte code = (byte)post.getId();
-            if (post.getParent() == 0) {
+            if (post.getParent() == null || post.getParent() == 0) {
                 String querySetPaths = "UPDATE post SET first_path=? WHERE id=?";
                 stmt = connection.prepareStatement(querySetPaths);
                 stmt.setInt(1, post.getId());
@@ -115,11 +116,13 @@ public class PostDAOimpl implements PostDAO{
                 stmt.close();
             }
 
-            String queryThreadPosts = "UPDATE thread SET posts=posts+1 WHERE id=?";
-            stmt = connection.prepareStatement(queryThreadPosts);
-            stmt.setInt(1, (Integer)post.getThread());
-            stmt.execute();
-            stmt.close();
+            if (post.getIsDeleted() == false) {
+                String queryThreadPosts = "UPDATE thread SET posts=posts+1 WHERE id=?";
+                stmt = connection.prepareStatement(queryThreadPosts);
+                stmt.setInt(1, (Integer) post.getThread());
+                stmt.execute();
+                stmt.close();
+            }
 
             return new CustomResponse(post, CustomResponse.OK);
         } catch (SQLException e) {
@@ -145,7 +148,7 @@ public class PostDAOimpl implements PostDAO{
         }
 
         PostDataSet post;
-        try {
+        try (Connection connection = Main.connection.getConnection()) {
             String query = "SELECT * FROM post WHERE id=?";
             PreparedStatement stmt = connection.prepareStatement(query);
             stmt.setString(1, postId);
@@ -158,13 +161,13 @@ public class PostDAOimpl implements PostDAO{
                 return response;
             }
             if (related.contains("user")) {
-                post.setUser(new UserDAOimpl(connection).details((String)post.getUser()).getResponse());
+                post.setUser(new UserDAOimpl().details((String)post.getUser()).getResponse());
             }
             if (related.contains("thread")) {
-                post.setThread(new ThreadDAOimpl(connection).details(post.getThread().toString(), new ArrayList<>()).getResponse());
+                post.setThread(new ThreadDAOimpl().details(post.getThread().toString(), new ArrayList<>()).getResponse());
             }
             if (related.contains("forum")) {
-                post.setForum(new ForumDAOimpl(connection).details((String)post.getForum(), new ArrayList<>()).getResponse());
+                post.setForum(new ForumDAOimpl().details((String)post.getForum(), new ArrayList<>()).getResponse());
             }
             stmt.close();
 
@@ -190,7 +193,7 @@ public class PostDAOimpl implements PostDAO{
         }
         order = (order == null) ? "desc" : order;
 
-        try {
+        try (Connection connection = Main.connection.getConnection()) {
             String forumQuery = "SELECT * FROM forum WHERE short_name=?;";
             String threadQuery = "SELECT * FROM thread WHERE id=?";
             String existQuery = (forumShortName != null) ? forumQuery : threadQuery;
@@ -252,7 +255,7 @@ public class PostDAOimpl implements PostDAO{
             return response;
         }
 
-        try {
+        try (Connection connection = Main.connection.getConnection()) {
             String queryPost = "SELECT thread, isDeleted FROM post WHERE id=?";
             PreparedStatement stmt = connection.prepareStatement(queryPost);
             stmt.setInt(1, json.get("post").getIntValue());
@@ -302,7 +305,7 @@ public class PostDAOimpl implements PostDAO{
 
         String message = json.get("message").getTextValue();
         int postId = json.get("post").getIntValue();
-        try {
+        try (Connection connection = Main.connection.getConnection()) {
             String query = "UPDATE post SET message=? WHERE id=?";
             PreparedStatement stmt = connection.prepareStatement(query);
             stmt.setString(1, message);
@@ -334,7 +337,7 @@ public class PostDAOimpl implements PostDAO{
         int vote = json.get("vote").getIntValue();
         int postId = json.get("post").getIntValue();
 
-        try {
+        try (Connection connection = Main.connection.getConnection()) {
             String queryLike = "UPDATE post SET likes=likes+1, points=points+1 WHERE id=?";
             String queryDislike = "UPDATE post SET dislikes=dislikes+1, points=points-1 WHERE id=?";
             PreparedStatement stmt = connection.prepareStatement((vote == 1) ? queryLike : queryDislike);
@@ -349,39 +352,5 @@ public class PostDAOimpl implements PostDAO{
             return response;
         }
     }
-
-    /*private void setPath(PostDataSet post) {
-        StringBuilder path = new StringBuilder();
-
-        try {
-            String query = "SELECT path FROM post WHERE id = ?";
-            PreparedStatement stmt = connection.prepareStatement(query);
-            stmt.setInt(1, (post.getParent() == null ? 0 : post.getParent()));
-
-            try (ResultSet resultSet = stmt.executeQuery()) {
-                if (resultSet.next()) {
-                    materializedPath = resultSet.getString("m_path");
-                }
-            } catch (Exception e)  {
-                e.printStackTrace();}
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-            materializedPath += "/";
-            materializedPath += Integer.toString(post.getId(), 36);
-
-            query = "UPDATE "+tableName+" SET m_path = ? WHERE id = ?";
-
-            try (PreparedStatement stmt = connection.prepareStatement(query)) {
-                stmt.setString(1, materializedPath);
-                stmt.setInt(2, post.getId());
-
-                stmt.execute();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-    }*/
 }
+

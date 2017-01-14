@@ -11,6 +11,7 @@ import dao.impl.UserDAOimpl;
 import dataSets.ForumDataSet;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.node.ObjectNode;
 
 import javax.inject.Singleton;
 import javax.ws.rs.*;
@@ -25,14 +26,12 @@ import java.util.List;
 @Singleton
 @Path("/forum")
 public class ForumController {
-    private Connection connection;
     private ObjectMapper mapper;
     private final ForumDAO forumDAO;
 
-    public ForumController(Connection connection) {
-        this.connection = connection;
+    public ForumController() {
         mapper = new ObjectMapper();
-        forumDAO = new ForumDAOimpl(connection);
+        forumDAO = new ForumDAOimpl();
     }
 
     @POST
@@ -65,8 +64,7 @@ public class ForumController {
                          @QueryParam("limit") String limit,
                          @QueryParam("order") String order) throws IOException {
         CustomResponse response = forumDAO.listPosts(forumShortName, related, since, limit, order);
-        String json = mapper.writeValueAsString(response);
-        return Response.ok().entity(json).build();
+        return Response.ok(mapper.writeValueAsString(response)).build();
     }
 
     @GET

@@ -26,20 +26,18 @@ import java.util.Map;
 @Singleton
 @Path("/")
 public class CommonController {
-    private Connection connection;
     private ObjectMapper mapper;
     private final UserDAO userDAO;
     private final ForumDAO forumDAO;
     private final ThreadDAO threadDAO;
     private final PostDAO postDAO;
     
-    public CommonController(Connection connection) {
-        this.connection = connection;
+    public CommonController() {
         mapper = new ObjectMapper();
-        userDAO = new UserDAOimpl(connection);
-        forumDAO = new ForumDAOimpl(connection);
-        threadDAO = new ThreadDAOimpl(connection);
-        postDAO = new PostDAOimpl(connection);
+        userDAO = new UserDAOimpl();
+        forumDAO = new ForumDAOimpl();
+        threadDAO = new ThreadDAOimpl();
+        postDAO = new PostDAOimpl();
     }
 
     @POST

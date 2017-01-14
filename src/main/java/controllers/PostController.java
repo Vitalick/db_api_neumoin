@@ -18,14 +18,12 @@ import java.util.List;
 @Singleton
 @Path("/post")
 public class PostController {
-    private Connection connection;
     private ObjectMapper mapper;
     private final PostDAO postDAO;
 
-    public PostController(Connection connection) {
-        this.connection = connection;
+    public PostController() {
         mapper = new ObjectMapper();
-        postDAO = new PostDAOimpl(connection);
+        postDAO = new PostDAOimpl();
     }
 
     @POST

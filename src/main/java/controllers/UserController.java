@@ -21,14 +21,12 @@ import java.util.Collection;
 @Singleton
 @Path("/user")
 public class UserController {
-    private Connection connection;
     private ObjectMapper mapper;
     private final UserDAO userDAO;
 
-    public UserController(Connection connection) {
-        this.connection = connection;
+    public UserController() {
         mapper = new ObjectMapper();
-        userDAO = new UserDAOimpl(connection);
+        userDAO = new UserDAOimpl();
     }
 
     @GET
