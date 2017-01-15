@@ -8,7 +8,6 @@ import org.apache.commons.pool.impl.GenericObjectPool;
 
 import javax.sql.DataSource;
 
-
 @SuppressWarnings("OverlyBroadThrowsClause")
 public class Connector {
     public static final String DRIVER = "com.mysql.jdbc.Driver";

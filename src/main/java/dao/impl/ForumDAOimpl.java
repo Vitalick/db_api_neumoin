@@ -42,7 +42,9 @@ public class ForumDAOimpl implements ForumDAO{
     public int count() {
         try (Connection connection = Main.connection.getConnection()) {
             final Statement stmt = connection.createStatement();
-            final int count = stmt.executeQuery("SELECT COUNT(*) FROM forum;").getInt(1);
+            final ResultSet resultSet = stmt.executeQuery("SELECT COUNT(*) FROM forum;");
+            resultSet.next();
+            final int count = resultSet.getInt(1);
             stmt.close();
             return count;
         } catch (SQLException e) {

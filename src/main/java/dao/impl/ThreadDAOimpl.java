@@ -40,7 +40,9 @@ public class ThreadDAOimpl implements ThreadDAO {
     public int count() {
         try (Connection connection = Main.connection.getConnection()) {
             final Statement stmt = connection.createStatement();
-            final int count = stmt.executeQuery("SELECT COUNT(*) FROM thread;").getInt(1);
+            final ResultSet resultSet = stmt.executeQuery("SELECT COUNT(*) FROM thread;");
+            resultSet.next();
+            final int count = resultSet.getInt(1);
             stmt.close();
             return count;
         } catch (SQLException e) {

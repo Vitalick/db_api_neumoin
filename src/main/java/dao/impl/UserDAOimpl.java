@@ -41,7 +41,9 @@ public class UserDAOimpl implements UserDAO{
     public int count() {
         try (Connection connection = Main.connection.getConnection()) {
             final Statement stmt = connection.createStatement();
-            final int count = stmt.executeQuery("SELECT COUNT(*) FROM user;").getInt(1);
+            final ResultSet resultSet = stmt.executeQuery("SELECT COUNT(*) FROM user;");
+            resultSet.next();
+            final int count = resultSet.getInt(1);
             stmt.close();
             return count;
         } catch (SQLException e) {

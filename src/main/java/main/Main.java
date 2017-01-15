@@ -8,7 +8,6 @@ import org.glassfish.jersey.servlet.ServletContainer;
 import javax.sql.DataSource;
 import java.net.InetSocketAddress;
 
-
 @SuppressWarnings("OverlyBroadThrowsClause")
 public class Main {
     private static final int PORT = 8081;

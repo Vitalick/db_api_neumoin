@@ -10,7 +10,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 
-
 @SuppressWarnings("OverlyBroadThrowsClause")
 @Singleton
 @Path("/user")
