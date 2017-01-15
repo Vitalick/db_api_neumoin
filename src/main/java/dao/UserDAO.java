@@ -16,8 +16,10 @@ public interface UserDAO {
 
     CustomResponse unfollow(String followString);
 
+    @SuppressWarnings("MethodParameterNamingConvention")
     CustomResponse listFollowers(String email, String since_id, String limit, String order);
 
+    @SuppressWarnings("MethodParameterNamingConvention")
     CustomResponse listFollowing(String email, String since_id, String limit, String order);
 
     CustomResponse listPosts(String email, String since, String limit, String order);

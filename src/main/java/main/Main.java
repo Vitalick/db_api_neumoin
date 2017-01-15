@@ -9,20 +9,20 @@ import javax.sql.DataSource;
 import java.net.InetSocketAddress;
 
 
+@SuppressWarnings("OverlyBroadThrowsClause")
 public class Main {
-    private final static int PORT = 8081;
+    private static final int PORT = 8081;
 
-    private static Connector connector;
-
+    @SuppressWarnings("PublicField")
     public static DataSource connection;
 
     public static void main(String[] args) throws Exception {
         System.out.append("Starting at port: ").append(String.valueOf(PORT)).append('\n');
 
-        connector = new Connector();
+        final Connector connector = new Connector();
         connection = connector.createSource();
 
-        InetSocketAddress address = new InetSocketAddress("0.0.0.0", PORT);
+        final InetSocketAddress address = new InetSocketAddress("0.0.0.0", PORT);
         final Server server = new Server(address);
         final ServletContextHandler contextHandler = new ServletContextHandler(server, "/db/api/", ServletContextHandler.SESSIONS);
 

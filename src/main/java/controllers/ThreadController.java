@@ -9,14 +9,15 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
-import java.sql.Connection;
 import java.util.List;
 
 
+@SuppressWarnings("OverlyBroadThrowsClause")
 @Singleton
 @Path("/thread")
 public class ThreadController {
-    private ObjectMapper mapper;
+    private final ObjectMapper mapper;
+
     private final ThreadDAO threadDAO;
 
     public ThreadController() {
@@ -29,8 +30,8 @@ public class ThreadController {
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("create")
     public Response create(String threadString) throws IOException {
-        CustomResponse response = threadDAO.create(threadString);
-        String json = mapper.writeValueAsString(response);
+        final CustomResponse response = threadDAO.create(threadString);
+        final String json = mapper.writeValueAsString(response);
         return Response.ok().entity(json).build();
     }
 
@@ -39,8 +40,8 @@ public class ThreadController {
     @Path("details")
     public Response details(@QueryParam("thread") String threadId,
                             @QueryParam("related") final List<String> related) throws IOException {
-        CustomResponse response = threadDAO.details(threadId, related);
-        String json = mapper.writeValueAsString(response);
+        final CustomResponse response = threadDAO.details(threadId, related);
+        final String json = mapper.writeValueAsString(response);
         return Response.ok().entity(json).build();
     }
 
@@ -49,8 +50,8 @@ public class ThreadController {
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("close")
     public Response close(String threadString) throws IOException {
-        CustomResponse response = threadDAO.close(threadString);
-        String json = mapper.writeValueAsString(response);
+        final CustomResponse response = threadDAO.close(threadString);
+        final String json = mapper.writeValueAsString(response);
         return Response.ok().entity(json).build();
     }
 
@@ -59,8 +60,8 @@ public class ThreadController {
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("open")
     public Response open(String threadString) throws IOException {
-        CustomResponse response = threadDAO.open(threadString);
-        String json = mapper.writeValueAsString(response);
+        final CustomResponse response = threadDAO.open(threadString);
+        final String json = mapper.writeValueAsString(response);
         return Response.ok().entity(json).build();
     }
 
@@ -72,8 +73,8 @@ public class ThreadController {
                          @QueryParam("since") String since,
                          @QueryParam("limit") String limit,
                          @QueryParam("order") String order) throws IOException {
-        CustomResponse response = threadDAO.list(forumShortName, email, since, limit, order);
-        String json = mapper.writeValueAsString(response);
+        final CustomResponse response = threadDAO.list(forumShortName, email, since, limit, order);
+        final String json = mapper.writeValueAsString(response);
         return Response.ok().entity(json).build();
     }
 
@@ -82,8 +83,8 @@ public class ThreadController {
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("remove")
     public Response remove(String threadString) throws IOException {
-        CustomResponse response = threadDAO.remove(threadString);
-        String json = mapper.writeValueAsString(response);
+        final CustomResponse response = threadDAO.remove(threadString);
+        final String json = mapper.writeValueAsString(response);
         return Response.ok().entity(json).build();
     }
 
@@ -92,8 +93,8 @@ public class ThreadController {
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("restore")
     public Response restore(String threadString) throws IOException {
-        CustomResponse response = threadDAO.restore(threadString);
-        String json = mapper.writeValueAsString(response);
+        final CustomResponse response = threadDAO.restore(threadString);
+        final String json = mapper.writeValueAsString(response);
         return Response.ok().entity(json).build();
     }
 
@@ -102,8 +103,8 @@ public class ThreadController {
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("subscribe")
     public Response subscribe(String subscribeString) throws IOException {
-        CustomResponse response = threadDAO.subscribe(subscribeString);
-        String json = mapper.writeValueAsString(response);
+        final CustomResponse response = threadDAO.subscribe(subscribeString);
+        final String json = mapper.writeValueAsString(response);
         return Response.ok().entity(json).build();
     }
 
@@ -112,8 +113,8 @@ public class ThreadController {
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("unsubscribe")
     public Response unsubscribe(String unsubscribeString) throws IOException {
-        CustomResponse response = threadDAO.unsubscribe(unsubscribeString);
-        String json = mapper.writeValueAsString(response);
+        final CustomResponse response = threadDAO.unsubscribe(unsubscribeString);
+        final String json = mapper.writeValueAsString(response);
         return Response.ok().entity(json).build();
     }
 
@@ -122,8 +123,8 @@ public class ThreadController {
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("update")
     public Response update(String threadString) throws IOException {
-        CustomResponse response = threadDAO.update(threadString);
-        String json = mapper.writeValueAsString(response);
+        final CustomResponse response = threadDAO.update(threadString);
+        final String json = mapper.writeValueAsString(response);
         return Response.ok().entity(json).build();
     }
 
@@ -132,9 +133,9 @@ public class ThreadController {
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("vote")
     public Response vote(String voteString) throws IOException {
-        CustomResponse response = threadDAO.vote(voteString);
-        String json = mapper.writeValueAsString(response);
-        return Response.ok().entity(response).build();
+        final CustomResponse response = threadDAO.vote(voteString);
+        final String json = mapper.writeValueAsString(response);
+        return Response.ok().entity(json).build();
     }
 
     @GET
@@ -145,8 +146,8 @@ public class ThreadController {
                          @QueryParam("since") String since,
                          @QueryParam("limit") String limit,
                          @QueryParam("order") String order) throws IOException {
-        CustomResponse response = threadDAO.listPosts(threadId, sort, since, limit, order);
-        String json = mapper.writeValueAsString(response);
+        final CustomResponse response = threadDAO.listPosts(threadId, sort, since, limit, order);
+        final String json = mapper.writeValueAsString(response);
         return Response.ok().entity(json).build();
     }
 }

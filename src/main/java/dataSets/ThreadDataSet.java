@@ -1,25 +1,37 @@
 package dataSets;
 
 import org.codehaus.jackson.JsonNode;
-import org.eclipse.jetty.http.HttpGenerator;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
 
+@SuppressWarnings("unused")
 public class ThreadDataSet {
     private int id;
+
     private String title;
+
     private String date;
+
     private String slug;
+
     private String message;
+
     private int likes = 0;
+
     private int dislikes = 0;
+
     private int points = 0;
+
     private int posts = 0;
+
     private boolean isClosed = false;
+
     private boolean isDeleted = false;
+
     private Object forum;
+
     private Object user;
 
     public ThreadDataSet(JsonNode json) {
@@ -36,7 +48,7 @@ public class ThreadDataSet {
     public ThreadDataSet(ResultSet resultSet) throws SQLException{
         this.id = resultSet.getInt("id");
         this.title = resultSet.getString("title");
-        String dateWithMs = resultSet.getString("date");
+        final String dateWithMs = resultSet.getString("date");
         this.date = dateWithMs.substring(0, dateWithMs.length() - 2);
         this.slug = resultSet.getString("slug");
         this.message = resultSet.getString("message");
@@ -51,29 +63,54 @@ public class ThreadDataSet {
     }
 
     public int getId() { return id; }
+
     public void setId( int id ) { this.id = id; }
+
     public String getTitle() {return title; }
+
     public void setTitle( String title ) { this.title = title; }
+
     public String getDate() {return date; }
+
     public void setDate( String date ) { this.date = date; }
+
     public String getSlug() {return slug; }
+
     public void setSlug( String slug ) { this.slug = slug; }
+
     public String getMessage() {return message; }
+
     public void setMessage( String message ) { this.message = message; }
+
     public Object getForum() {return forum; }
+
     public void setForum( Object forum ) { this.forum = forum; }
+
     public Object getUser() {return user; }
+
     public void setUser( Object user ) { this.user = user; }
+
     public boolean getIsClosed() {return isClosed; }
+
     public void setIsClosed( boolean isClosed ) { this.isClosed = isClosed; }
+
     public boolean getIsDeleted() {return isDeleted; }
+
     public void setIsDeleted( boolean isDeleted ) { this.isDeleted = isDeleted; }
+
     public int getLikes() {return likes; }
+
     public void setLikes( int likes ) { this.likes = likes; }
+
     public int getDislikes() {return dislikes; }
+
     public void setDislikes( int dislikes ) { this.dislikes = dislikes; }
+
     public int getPoints() {return points; }
+
     public void setPoints( int points ) { this.points = points; }
+
     public int getPosts() {return posts; }
+
     public void setPosts( int posts ) { this.posts = posts; }
 }

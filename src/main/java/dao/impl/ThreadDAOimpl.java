@@ -4,45 +4,44 @@ import controllers.CustomResponse;
 import dao.ThreadDAO;
 import dataSets.PostDataSet;
 import dataSets.ThreadDataSet;
-import executor.TExecutor;
 import main.Main;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.glassfish.jersey.internal.inject.Custom;
 
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 
+@SuppressWarnings({"OverlyComplexBooleanExpression", "OverlyBroadCatchBlock", "OverlyComplexMethod", "JDBCResourceOpenedButNotSafelyClosed"})
 public class ThreadDAOimpl implements ThreadDAO {
-    ObjectMapper mapper;
+    final ObjectMapper mapper;
 
     public ThreadDAOimpl() {
         this.mapper = new ObjectMapper();
     }
 
+    @Override
     public void truncateTable() {
         try (Connection connection = Main.connection.getConnection()) {
-            TExecutor.execQuery(connection, "SET FOREIGN_KEY_CHECKS = 0;");
-            TExecutor.execQuery(connection, "TRUNCATE TABLE thread;");
-            TExecutor.execQuery(connection, "TRUNCATE TABLE subscribed;");
-            TExecutor.execQuery(connection, "SET FOREIGN_KEY_CHECKS = 1;");
+            final Statement stmt = connection.createStatement();
+            stmt.execute("SET FOREIGN_KEY_CHECKS = 0;");
+            stmt.execute("TRUNCATE TABLE thread;");
+            stmt.execute("TRUNCATE TABLE subscribed;");
+            stmt.execute("SET FOREIGN_KEY_CHECKS = 1;");
+            stmt.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
+    @Override
     public int count() {
         try (Connection connection = Main.connection.getConnection()) {
-            int count = TExecutor.execQuery(connection, "SELECT COUNT(*) FROM thread WHERE isDeleted=0;",resultSet -> {
-                resultSet.next();
-                return resultSet.getInt(1);
-            });
+            final Statement stmt = connection.createStatement();
+            final int count = stmt.executeQuery("SELECT COUNT(*) FROM thread;").getInt(1);
+            stmt.close();
             return count;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -50,35 +49,29 @@ public class ThreadDAOimpl implements ThreadDAO {
         return -1;
     }
 
+    @Override
     public CustomResponse create(String threadString) {
-        CustomResponse response = new CustomResponse();
-        ThreadDataSet thread;
+        final ThreadDataSet thread;
 
         try {
-            JsonNode json = mapper.readValue(threadString, JsonNode.class);
+            final JsonNode json = mapper.readValue(threadString, JsonNode.class);
             if (!json.has("forum") || !json.has("title") || !json.has("isClosed") || !json.has("user")
                     || !json.has("date") || !json.has("message") || !json.has("slug")) {
-                response.setResponse("INCORRECT REQUEST");
-                response.setCode(CustomResponse.INCORRECT_REQUEST);
-                return response;
+                return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
             }
             try {
                 thread = new ThreadDataSet(json);
 
             } catch (Exception e) {
-                response.setResponse("INCORRECT REQUEST");
-                response.setCode(CustomResponse.INCORRECT_REQUEST);
-                return response;
+                return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
             }
         } catch (IOException e) {
-            response.setResponse("INVALID REQUEST");
-            response.setCode(CustomResponse.INVALID_REQUEST);
-            return response;
+            return new CustomResponse("INVALID REQUEST", CustomResponse.INVALID_REQUEST);
         }
 
         try (Connection connection = Main.connection.getConnection()) {
-            String query = "INSERT INTO thread (title, date, slug, message, forum, user, isClosed, isDeleted) VALUES(?,?,?,?,?,?,?,?);";
-            PreparedStatement stmt = connection.prepareStatement(query);
+            final String query = "INSERT INTO thread (title, date, slug, message, forum, user, isClosed, isDeleted) VALUES(?,?,?,?,?,?,?,?);";
+            final PreparedStatement stmt = connection.prepareStatement(query);
             stmt.setString(1, thread.getTitle());
             stmt.setString(2, thread.getDate());
             stmt.setString(3, thread.getSlug());
@@ -88,7 +81,7 @@ public class ThreadDAOimpl implements ThreadDAO {
             stmt.setBoolean(7, thread.getIsClosed());
             stmt.setBoolean(8, thread.getIsDeleted());
             stmt.execute();
-            ResultSet generatedKeys = stmt.getGeneratedKeys();
+            final ResultSet generatedKeys = stmt.getGeneratedKeys();
             if (generatedKeys.next())
                 thread.setId(generatedKeys.getInt(1));
             stmt.close();
@@ -99,56 +92,46 @@ public class ThreadDAOimpl implements ThreadDAO {
         }
     }
 
+    @Override
     public CustomResponse details(String threadId, final List<String> related) {
-        CustomResponse response = new CustomResponse();
-
         if (threadId == null) {
-            response.setResponse("INCORRECT REQUEST");
-            response.setCode(CustomResponse.INCORRECT_REQUEST);
-            return response;
+            return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
         }
 
         for (String str : related) {
             if (!str.equals("user") && !str.equals("forum")) {
-                response.setResponse("INCORRECT REQUEST");
-                response.setCode(CustomResponse.INCORRECT_REQUEST);
-                return response;
+                return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
             }
         }
 
-        ThreadDataSet thread;
         try (Connection connection = Main.connection.getConnection()) {
-            String query = "SELECT * FROM thread WHERE id=?";
-            PreparedStatement stmt = connection.prepareStatement(query);
+            final String query = "SELECT * FROM thread WHERE id=?";
+            final PreparedStatement stmt = connection.prepareStatement(query);
             stmt.setString(1, threadId);
-            ResultSet resultSet = stmt.executeQuery();
+            final ResultSet resultSet = stmt.executeQuery();
+            final ThreadDataSet thread;
             if (resultSet.next()) {
                 thread = new ThreadDataSet(resultSet);
             } else {
-                response.setResponse("NOT FOUND");
-                response.setCode(CustomResponse.NOT_FOUND);
-                return response;
+                return new CustomResponse("NOT FOUND", CustomResponse.NOT_FOUND);
             }
             if (related.contains("user")) {
                 thread.setUser(new UserDAOimpl().details((String)thread.getUser()).getResponse());
             }
             if (related.contains("forum")) {
-                thread.setForum(new ForumDAOimpl().details((String)thread.getForum(), new ArrayList<String>()).getResponse());
+                thread.setForum(new ForumDAOimpl().details((String)thread.getForum(), new ArrayList<>()).getResponse());
             }
             stmt.close();
 
-            response.setResponse(thread);
-            response.setCode(CustomResponse.OK);
-            return response;
+            return new CustomResponse(thread, CustomResponse.OK);
         } catch (SQLException e) {
-            response.setResponse("UNKNOWN ERROR");
-            response.setCode(CustomResponse.UNKNOWN_ERROR);
-            return response;
+            return new CustomResponse("UNKNOWN ERROR", CustomResponse.UNKNOWN_ERROR);
         }
     }
 
+    @Override
     public CustomResponse close(String threadString) {
-        JsonNode json;
+        final JsonNode json;
         try {
             json = mapper.readValue(threadString, JsonNode.class);
         } catch (IOException e) {
@@ -158,10 +141,10 @@ public class ThreadDAOimpl implements ThreadDAO {
         if (!json.has("thread"))
             return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
 
-        int threadId = json.get("thread").getIntValue();
+        final int threadId = json.get("thread").getIntValue();
         try (Connection connection = Main.connection.getConnection()) {
-            String query = "UPDATE thread SET isClosed=1 WHERE id = ?";
-            PreparedStatement stmt = connection.prepareStatement(query);
+            final String query = "UPDATE thread SET isClosed=1 WHERE id = ?";
+            final PreparedStatement stmt = connection.prepareStatement(query);
             stmt.setInt(1, threadId);
             stmt.executeUpdate();
             stmt.close();
@@ -172,8 +155,9 @@ public class ThreadDAOimpl implements ThreadDAO {
         }
     }
 
+    @Override
     public CustomResponse open(String threadString) {
-        JsonNode json;
+        final JsonNode json;
         try {
             json = mapper.readValue(threadString, JsonNode.class);
         } catch (IOException e) {
@@ -183,10 +167,10 @@ public class ThreadDAOimpl implements ThreadDAO {
         if (!json.has("thread"))
             return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
 
-        int threadId = json.get("thread").getIntValue();
+        final int threadId = json.get("thread").getIntValue();
         try (Connection connection = Main.connection.getConnection()) {
-            String query = "UPDATE thread SET isClosed=0 WHERE id = ?";
-            PreparedStatement stmt = connection.prepareStatement(query);
+            final String query = "UPDATE thread SET isClosed=0 WHERE id = ?";
+            final PreparedStatement stmt = connection.prepareStatement(query);
             stmt.setInt(1, threadId);
             stmt.executeUpdate();
             stmt.close();
@@ -197,19 +181,21 @@ public class ThreadDAOimpl implements ThreadDAO {
         }
     }
 
+    @Override
     public CustomResponse list(String forumShortName, String email, String since, String limit, String order) {
         if ((forumShortName == null && email == null) || (forumShortName != null && email != null)
-                || (order != null && !order.equals("asc") && !order.equals("desc")))
+                || (order != null && !order.equals("asc") && !order.equals("desc"))) {
             return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
+        }
         order = (order == null) ? "desc" : order;
 
         try (Connection connection = Main.connection.getConnection()) {
             String forumQuery = "SELECT * FROM forum WHERE short_name=?;";
             String userQuery = "SELECT * FROM user WHERE email=?";
-            String existQuery = (forumShortName != null) ? forumQuery : userQuery;
-            PreparedStatement existStmt = connection.prepareStatement(existQuery);
+            final String existQuery = (forumShortName != null) ? forumQuery : userQuery;
+            final PreparedStatement existStmt = connection.prepareStatement(existQuery);
             existStmt.setString(1, (forumShortName != null) ? forumShortName : email);
-            ResultSet existResultSet = existStmt.executeQuery();
+            final ResultSet existResultSet = existStmt.executeQuery();
 
             if (!existResultSet.next()) {
                 existStmt.close();
@@ -219,23 +205,23 @@ public class ThreadDAOimpl implements ThreadDAO {
 
             forumQuery = "SELECT * FROM thread WHERE forum=?";
             userQuery = "SELECT * FROM thread WHERE user=?";
-            StringBuilder queryBuilder = new StringBuilder();
+            final StringBuilder queryBuilder = new StringBuilder();
             queryBuilder.append((forumShortName != null) ? forumQuery : userQuery);
             if (since != null) queryBuilder.append(" AND date >=?");
             queryBuilder.append(" ORDER BY date");
             if (order.equals("desc")) queryBuilder.append(" DESC");
             if (limit != null) queryBuilder.append(" LIMIT ?");
 
-            PreparedStatement stmt = connection.prepareStatement(queryBuilder.toString());
+            final PreparedStatement stmt = connection.prepareStatement(queryBuilder.toString());
             stmt.setString(1, (forumShortName != null) ? forumShortName : email);
             int stmtParam = 2;
             if (since != null) stmt.setString(stmtParam++, since);
             if (limit != null) stmt.setInt(stmtParam, new Integer(limit));
 
-            ResultSet resultSet = stmt.executeQuery();
-            List<ThreadDataSet> threads = new ArrayList<>();
+            final ResultSet resultSet = stmt.executeQuery();
+            final List<ThreadDataSet> threads = new ArrayList<>();
             while (resultSet.next()) {
-                ThreadDataSet thread = new ThreadDataSet(resultSet);
+                final ThreadDataSet thread = new ThreadDataSet(resultSet);
                 threads.add(thread);
             }
             stmt.close();
@@ -246,8 +232,9 @@ public class ThreadDAOimpl implements ThreadDAO {
         }
     }
 
+    @Override
     public CustomResponse remove(String threadString) {
-        JsonNode json;
+        final JsonNode json;
         try {
             json = mapper.readValue(threadString, JsonNode.class);
         } catch (IOException e) {
@@ -257,15 +244,15 @@ public class ThreadDAOimpl implements ThreadDAO {
         if (!json.has("thread"))
             return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
 
-        int threadId = json.get("thread").getIntValue();
+        final int threadId = json.get("thread").getIntValue();
         try (Connection connection = Main.connection.getConnection()) {
-            String query = "UPDATE thread SET isDeleted=1, posts=0 WHERE id = ?";
+            final String query = "UPDATE thread SET isDeleted=1, posts=0 WHERE id = ?";
             PreparedStatement stmt = connection.prepareStatement(query);
             stmt.setInt(1, threadId);
             stmt.executeUpdate();
             stmt.close();
 
-            String queryDeletePosts = "UPDATE post SET isDeleted=1 WHERE thread = ?";
+            final String queryDeletePosts = "UPDATE post SET isDeleted=1 WHERE thread = ?";
             stmt = connection.prepareStatement(queryDeletePosts);
             stmt.setInt(1, threadId);
             stmt.execute();
@@ -277,8 +264,9 @@ public class ThreadDAOimpl implements ThreadDAO {
         }
     }
 
+    @Override
     public CustomResponse restore(String threadString) {
-        JsonNode json;
+        final JsonNode json;
         try {
             json = mapper.readValue(threadString, JsonNode.class);
         } catch (IOException e) {
@@ -288,16 +276,16 @@ public class ThreadDAOimpl implements ThreadDAO {
         if (!json.has("thread"))
             return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
 
-        int threadId = json.get("thread").getIntValue();
+        final int threadId = json.get("thread").getIntValue();
         try (Connection connection = Main.connection.getConnection()) {
-            String query = "UPDATE thread SET isDeleted=0, posts=(SELECT COUNT(*) FROM post WHERE thread=?) WHERE id = ?";
+            final String query = "UPDATE thread SET isDeleted=0, posts=(SELECT COUNT(*) FROM post WHERE thread=?) WHERE id = ?";
             PreparedStatement stmt = connection.prepareStatement(query);
             stmt.setInt(1, threadId);
             stmt.setInt(2, threadId);
             stmt.executeUpdate();
             stmt.close();
 
-            String queryRestorePosts = "UPDATE post SET isDeleted=0 WHERE thread = ?";
+            final String queryRestorePosts = "UPDATE post SET isDeleted=0 WHERE thread = ?";
             stmt = connection.prepareStatement(queryRestorePosts);
             stmt.setInt(1, threadId);
             stmt.execute();
@@ -309,8 +297,9 @@ public class ThreadDAOimpl implements ThreadDAO {
         }
     }
 
+    @Override
     public CustomResponse subscribe(String subscribeString) {
-        JsonNode json;
+        final JsonNode json;
         try {
             json = mapper.readValue(subscribeString, JsonNode.class);
         } catch (IOException e) {
@@ -320,11 +309,11 @@ public class ThreadDAOimpl implements ThreadDAO {
         if (!json.has("thread") || !json.has("user"))
             return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
 
-        int thread = json.get("thread").getIntValue();
-        String user = json.get("user").getTextValue();
+        final int thread = json.get("thread").getIntValue();
+        final String user = json.get("user").getTextValue();
         try (Connection connection = Main.connection.getConnection()) {
-            String query = "INSERT IGNORE INTO subscribed (user, thread) VALUES (?,?)";
-            PreparedStatement stmt = connection.prepareStatement(query);
+            final String query = "INSERT IGNORE INTO subscribed (user, thread) VALUES (?,?)";
+            final PreparedStatement stmt = connection.prepareStatement(query);
             stmt.setString(1, user);
             stmt.setInt(2, thread);
             stmt.executeUpdate();
@@ -336,8 +325,9 @@ public class ThreadDAOimpl implements ThreadDAO {
         }
     }
 
+    @Override
     public CustomResponse unsubscribe(String unsubscribeString) {
-        JsonNode json;
+        final JsonNode json;
         try {
             json = mapper.readValue(unsubscribeString, JsonNode.class);
         } catch (IOException e) {
@@ -347,11 +337,11 @@ public class ThreadDAOimpl implements ThreadDAO {
         if (!json.has("thread") || !json.has("user"))
             return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
 
-        int thread = json.get("thread").getIntValue();
-        String user = json.get("user").getTextValue();
+        final int thread = json.get("thread").getIntValue();
+        final String user = json.get("user").getTextValue();
         try (Connection connection = Main.connection.getConnection()) {
-            String query = "DELETE FROM subscribed WHERE user = ? AND thread = ?";
-            PreparedStatement stmt = connection.prepareStatement(query);
+            final String query = "DELETE FROM subscribed WHERE user = ? AND thread = ?";
+            final PreparedStatement stmt = connection.prepareStatement(query);
             stmt.setString(1, user);
             stmt.setInt(2, thread);
             stmt.executeUpdate();
@@ -363,8 +353,9 @@ public class ThreadDAOimpl implements ThreadDAO {
         }
     }
 
+    @Override
     public CustomResponse update(String threadString) {
-        JsonNode json;
+        final JsonNode json;
         try {
             json = mapper.readValue(threadString, JsonNode.class);
         } catch (IOException e) {
@@ -374,26 +365,27 @@ public class ThreadDAOimpl implements ThreadDAO {
         if (!json.has("message") || !json.has("slug") || !json.has("thread"))
             return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
 
-        int threadId = json.get("thread").getIntValue();
-        String slug = json.get("slug").getTextValue();
-        String message = json.get("message").getTextValue();
+        final int threadId = json.get("thread").getIntValue();
+        final String slug = json.get("slug").getTextValue();
+        final String message = json.get("message").getTextValue();
         try (Connection connection = Main.connection.getConnection()) {
-            String query = "UPDATE thread SET slug=?, message=? WHERE id=?";
-            PreparedStatement stmt = connection.prepareStatement(query);
+            final String query = "UPDATE thread SET slug=?, message=? WHERE id=?";
+            final PreparedStatement stmt = connection.prepareStatement(query);
             stmt.setString(1, slug);
             stmt.setString(2, message);
             stmt.setInt(3, threadId);
             stmt.executeUpdate();
             stmt.close();
 
-            return details(new Integer(threadId).toString(), new ArrayList<>());
+            return details(Integer.toString(threadId), new ArrayList<>());
         } catch (SQLException e) {
             return new CustomResponse("UNKNOWN ERROR", CustomResponse.UNKNOWN_ERROR);
         }
     }
 
+    @Override
     public CustomResponse vote(String voteString) {
-        JsonNode json;
+        final JsonNode json;
         try {
             json = mapper.readValue(voteString, JsonNode.class);
         } catch (IOException e) {
@@ -404,23 +396,24 @@ public class ThreadDAOimpl implements ThreadDAO {
                 json.get("vote").getIntValue() != 1 && json.get("vote").getIntValue() != -1) {
             return new CustomResponse("INCORRECT REQUEST", CustomResponse.INCORRECT_REQUEST);
         }
-        int vote = json.get("vote").getIntValue();
-        int threadId = json.get("thread").getIntValue();
+        final int vote = json.get("vote").getIntValue();
+        final int threadId = json.get("thread").getIntValue();
 
         try (Connection connection = Main.connection.getConnection()) {
-            String queryLike = "UPDATE thread SET likes=likes+1, points=points+1 WHERE id=?";
-            String queryDislike = "UPDATE thread SET dislikes=dislikes+1, points=points-1 WHERE id=?";
-            PreparedStatement stmt = connection.prepareStatement((vote == 1) ? queryLike : queryDislike);
+            final String queryLike = "UPDATE thread SET likes=likes+1, points=points+1 WHERE id=?";
+            final String queryDislike = "UPDATE thread SET dislikes=dislikes+1, points=points-1 WHERE id=?";
+            final PreparedStatement stmt = connection.prepareStatement((vote == 1) ? queryLike : queryDislike);
             stmt.setInt(1, threadId);
             stmt.executeUpdate();
             stmt.close();
 
-            return details(new Integer(threadId).toString(), new ArrayList<>());
+            return details(Integer.toString(threadId), new ArrayList<>());
         } catch (SQLException | NullPointerException e) {
             return new CustomResponse("UNKNOWN ERROR", CustomResponse.UNKNOWN_ERROR);
         }
     }
 
+    @Override
     public CustomResponse listPosts(String threadId, String sort, String since, String limit, String order) {
         if (threadId == null || (order != null && !order.equals("asc") && !order.equals("desc"))
                 || (sort != null && !sort.equals("flat")) && !sort.equals("tree") && !sort.equals("parent_tree"))
@@ -429,7 +422,7 @@ public class ThreadDAOimpl implements ThreadDAO {
         sort = (sort == null) ? "flat" : sort;
 
         try (Connection connection = Main.connection.getConnection()) {
-            StringBuilder queryBuilder = new StringBuilder();
+            final StringBuilder queryBuilder = new StringBuilder();
             queryBuilder.append("SELECT * FROM post");
             queryBuilder.append(" WHERE thread = ?");
             if (since != null) queryBuilder.append(" AND date >= ?");
@@ -447,19 +440,19 @@ public class ThreadDAOimpl implements ThreadDAO {
                     queryBuilder.append(" LIMIT ?");
             }
 
-            PreparedStatement stmt = connection.prepareStatement(queryBuilder.toString());
+            final PreparedStatement stmt = connection.prepareStatement(queryBuilder.toString());
             stmt.setString(1, threadId);
             int stmtParam = 2;
             if (since != null) stmt.setString(stmtParam++, since);
             if (limit != null && !sort.equals("parent_tree")) stmt.setInt(stmtParam, new Integer(limit));
 
-            ResultSet resultSet = stmt.executeQuery();
-            List<PostDataSet> posts = new ArrayList<>();
+            final ResultSet resultSet = stmt.executeQuery();
+            final List<PostDataSet> posts = new ArrayList<>();
 
             int parents = 0;
             int lastParent = -1;
             while (resultSet.next()) {
-                PostDataSet post = new PostDataSet(resultSet);
+                final PostDataSet post = new PostDataSet(resultSet);
                 if (sort.equals("parent_tree") && limit != null) {
                     if (post.getFirstPathValue()!=lastParent) {
                         parents++;
@@ -477,6 +470,4 @@ public class ThreadDAOimpl implements ThreadDAO {
         }
     }
 }
-
-//TODO delete posts with thread
 

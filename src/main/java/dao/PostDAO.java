@@ -14,8 +14,7 @@ public interface PostDAO {
 
     CustomResponse details(String postId, List<String> related);
 
-    CustomResponse list(String forumShortName, String threadId, String since,
-                        String limit, String order);
+    CustomResponse list(String forumShortName, String threadId, String since, String limit, String order);
 
     CustomResponse removeOrRestore(String postString, String action);
 
